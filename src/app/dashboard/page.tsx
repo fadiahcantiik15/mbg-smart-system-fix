@@ -34,12 +34,17 @@ export default function DashboardPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [detectionResult, setDetectionResult] = useState<any>(null);
   
-  // === TAMBAHAN: STATE UNTUK LOKASI GPS ===
+  // === STATE GPS ===
   const [koordinat, setKoordinat] = useState<string>("Mencari lokasi...");
   
-  // States untuk Log & Sampah
+  // States untuk Log, Sampah & Statistik
   const [logEntries, setLogEntries] = useState<any[]>([]);
   const [trashEntries, setTrashEntries] = useState<any[]>([]);
+  const [stats, setStats] = useState({ total: 0, segar: 0, basi: 0 });
+
+  // States untuk Approval Admin
+  const [pendingUsers, setPendingUsers] = useState<any[]>([]);
+  const [isLoadingPending, setIsLoadingPending] = useState(false);
 
   // Profil
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -48,8 +53,17 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const userStr = localStorage.getItem("mbg_user");
-    if (!userStr) router.push("/");
-    else setCurrentUser(JSON.parse(userStr));
+    if (!userStr) {
+      router.push("/");
+    } else {
+      const user = JSON.parse(userStr);
+      setCurrentUser(user);
+      if (user.role === "Admin") {
+        setActivePage("home");
+      } else {
+        setActivePage("camera");
+      }
+    }
   }, [router]);
 
   // ==========================================
@@ -64,7 +78,16 @@ export default function DashboardPage() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      if (data) setLogEntries(data);
+      if (data) {
+        setLogEntries(data);
+        let segarCount = 0;
+        let basiCount = 0;
+        data.forEach(log => {
+            if(log.status === "SEGAR") segarCount++;
+            if(log.status === "BASI") basiCount++;
+        });
+        setStats({ total: data.length, segar: segarCount, basi: basiCount });
+      }
     } catch (err: any) {
       console.error("Gagal mengambil riwayat:", err.message);
     }
@@ -101,16 +124,34 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchPendingUsers = async () => {
+    setIsLoadingPending(true);
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      if (data) setPendingUsers(data);
+    } catch (err: any) {
+      console.error("Gagal memuat data pending:", err.message);
+    } finally {
+      setIsLoadingPending(false);
+    }
+  };
+
   useEffect(() => {
     if (activePage === "camera" && cameraMode === "input") startCamera();
     else stopCamera();
     return () => stopCamera();
   }, [activePage, cameraMode]);
 
-  // === TAMBAHAN: MINTA IZIN LOKASI SAAT BUKA KAMERA ===
+  // === MINTA IZIN LOKASI & FETCH DATA ===
   useEffect(() => {
-    if (activePage === "log") fetchLogs();
+    if (activePage === "log" || activePage === "home") fetchLogs();
     if (activePage === "sampah") fetchTrash();
+    if (activePage === "approval") fetchPendingUsers(); // Fetch data approval jika menu aktif
     
     if (activePage === "camera") {
       if ("geolocation" in navigator) {
@@ -204,7 +245,7 @@ export default function DashboardPage() {
   };
 
   // ==========================================
-  // FUNGSI SIMPAN (DENGAN GPS), HAPUS, & RESTORE
+  // FUNGSI SIMPAN, HAPUS, RESTORE, APPROVAL
   // ==========================================
   const handleSaveResult = async () => {
     if (!detectionResult || !currentUser) return;
@@ -222,7 +263,7 @@ export default function DashboardPage() {
         protein: parseFloat(detectionResult.protein),
         lemak: parseFloat(detectionResult.lemak),
         karbo: parseFloat(detectionResult.karbo),
-        koordinat_lokasi: koordinat // <--- TAMBAHAN: MENYIMPAN GPS KE DATABASE
+        koordinat_lokasi: koordinat
       }]);
 
       if (error) throw error;
@@ -238,7 +279,6 @@ export default function DashboardPage() {
   const handleSoftDelete = async (id: number) => {
     const isConfirm = window.confirm("Pindahkan riwayat ini ke Tempat Sampah? Data bisa dikembalikan dalam 7 hari.");
     if (!isConfirm) return;
-
     try {
       const { error } = await supabase.from("riwayat").update({ deleted_at: new Date().toISOString() }).eq("id", id);
       if (error) throw error;
@@ -259,13 +299,27 @@ export default function DashboardPage() {
   const handleHardDelete = async (id: number) => {
     const isConfirm = window.confirm("Peringatan: Data akan dihapus PERMANEN dan tidak dapat dikembalikan. Lanjutkan?");
     if (!isConfirm) return;
-
     try {
       const { error } = await supabase.from("riwayat").delete().eq("id", id);
       if (error) throw error;
       showToast("💥 Data dihapus permanen.");
       fetchTrash();
     } catch (err: any) { alert("Gagal menghapus permanen: " + err.message); }
+  };
+
+  const handleUpdateStatusPetugas = async (id: string, newStatus: "approved" | "ditolak", nama: string) => {
+    const confirmMsg = newStatus === "approved" 
+      ? `Yakin ingin MENYETUJUI akses untuk ${nama}?` 
+      : `Yakin ingin MENOLAK akses untuk ${nama}?`;
+      
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const { error } = await supabase.from("users").update({ status: newStatus }).eq("id", id);
+      if (error) throw error;
+      showToast(`✅ Status ${nama} diubah menjadi ${newStatus.toUpperCase()}`);
+      setPendingUsers(pendingUsers.filter(user => user.id !== id));
+    } catch (err: any) { alert("Gagal mengubah status: " + err.message); }
   };
 
   // ==========================================
@@ -301,6 +355,8 @@ export default function DashboardPage() {
 
   if (!currentUser) return null;
 
+  const isAdmin = currentUser.role === "Admin";
+
   return (
     <>
       <div className="food-layer" id="food-bg">
@@ -326,7 +382,6 @@ export default function DashboardPage() {
 
         <aside className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
           <div className="sidebar-brand">
-            {/* === PERBAIKAN JUDUL SIDEBAR MENJADI 1 BARIS === */}
             <h2 style={{ fontSize: "1.05rem", whiteSpace: "nowrap", marginBottom: "4px" }}>Makan Bergizi Gratis</h2>
             <p>Smart System</p>
           </div>
@@ -335,9 +390,21 @@ export default function DashboardPage() {
             <button className={`nav-item ${activePage === "home" ? "active" : ""}`} onClick={() => { setActivePage("home"); setIsSidebarOpen(false); }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg> Halaman Utama
             </button>
-            <button className={`nav-item ${activePage === "camera" ? "active" : ""}`} onClick={() => { setActivePage("camera"); setIsSidebarOpen(false); }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg> Kamera Langsung
-            </button>
+
+            {/* Menu Kamera disembunyikan jika yang login adalah Admin */}
+            {!isAdmin && (
+              <button className={`nav-item ${activePage === "camera" ? "active" : ""}`} onClick={() => { setActivePage("camera"); setIsSidebarOpen(false); }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg> Kamera Langsung
+              </button>
+            )}
+
+            {/* === MENU KHUSUS ADMIN === */}
+            {isAdmin && (
+              <button className={`nav-item ${activePage === "approval" ? "active" : ""}`} onClick={() => { setActivePage("approval"); setIsSidebarOpen(false); }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg> Verifikasi Petugas
+              </button>
+            )}
+
             <button className={`nav-item ${activePage === "log" ? "active" : ""}`} onClick={() => { setActivePage("log"); setIsSidebarOpen(false); }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg> Log Riwayat
             </button>
@@ -369,15 +436,31 @@ export default function DashboardPage() {
           `}</style>
 
           <div className="top-bar">
-            <div className="step-indicators">
-              <div className="step-item"><div className="step-icon">📷</div><span className="step-label">1. Arahkan Kamera</span></div>
-              <div className="step-item"><div className="step-icon">📸</div><span className="step-label">2. Tekan Ambil Foto</span></div>
-              <div className="step-item"><div className="step-icon">📊</div><span className="step-label">3. Lihat Hasil Gizi</span></div>
-            </div>
+            {/* Sembunyikan Step 1-2-3 jika yang login adalah Admin */}
+            {!isAdmin ? (
+              <div className="step-indicators">
+                <div className="step-item"><div className="step-icon">📷</div><span className="step-label">1. Arahkan Kamera</span></div>
+                <div className="step-item"><div className="step-icon">📸</div><span className="step-label">2. Tekan Ambil Foto</span></div>
+                <div className="step-item"><div className="step-icon">📊</div><span className="step-label">3. Lihat Hasil Gizi</span></div>
+              </div>
+            ) : (
+              /* === TAMPILAN HEADER KHUSUS ADMIN === */
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "#e8f4f8", padding: "8px 16px", borderRadius: "30px", border: "1px solid #bde0eb" }}>
+                <span style={{ fontSize: "1.2rem" }}>📅</span>
+                <span style={{ color: "var(--clr-navy)", fontWeight: "600", fontSize: "0.9rem" }}>
+                  {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+                <span style={{ color: "var(--clr-gray-400)", margin: "0 5px" }}>|</span>
+                <span style={{ color: "var(--clr-teal)", fontWeight: "bold", fontSize: "0.85rem" }}>
+                  🟢 Sistem Aktif
+                </span>
+              </div>
+            )}
+
             <div className="profile-badge">
               <div className="profile-avatar">{currentUser.nama_lengkap.charAt(0).toUpperCase()}</div>
               <div className="profile-info">
-                <div className="profile-label">Petugas:</div>
+                <div className="profile-label">{currentUser.role}:</div>
                 <div className="profile-name">{currentUser.nama_lengkap}</div>
               </div>
               <span className="profile-status">(online)</span>
@@ -387,64 +470,93 @@ export default function DashboardPage() {
           <div className="dashboard-body">
             {activePage === "home" && (
               <div className="dash-view active">
-                <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
-                  <h2 style={{ fontSize: "1.6rem", marginBottom: "0.5rem" }}>Selamat Datang di MBG Smart System</h2>
-                  <p style={{ color: "var(--clr-gray-500)", maxWidth: "500px", margin: "0 auto 2rem", lineHeight: "1.6" }}>
-                    Gunakan menu <strong>Kamera Langsung</strong> untuk memulai analisis kualitas dan gizi makanan. Sistem akan mendeteksi kesegaran makanan dan menampilkan informasi nutrisi secara real-time.
-                  </p>
+                {/* ========================================================= */}
+                {/* TAMPILAN KHUSUS ADMIN (STATISTIK) */}
+                {/* ========================================================= */}
+                {isAdmin ? (
+                  <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
+                    <h2 style={{ fontSize: "1.8rem", marginBottom: "0.5rem", color: "var(--clr-navy)" }}>Dashboard Administrator</h2>
+                    <p style={{ color: "var(--clr-gray-500)", maxWidth: "500px", margin: "0 auto 2rem", lineHeight: "1.6" }}>
+                      Pantau secara *real-time* kualitas makanan dan performa petugas lapangan dari seluruh Dapur MBG.
+                    </p>
 
-                  <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-                    <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px" }}>
-                      <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>📷</div>
-                      <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>Deteksi Kualitas</div>
-                      <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)", marginTop: "4px" }}>AI-powered analysis</div>
+                    {/* KARTU STATISTIK */}
+                    <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap", marginBottom: "3rem" }}>
+                      <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px", borderBottom: "4px solid var(--clr-teal)" }}>
+                        <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--clr-gray-500)" }}>Total Pemeriksaan</div>
+                        <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "var(--clr-navy)", margin: "10px 0" }}>{stats.total}</div>
+                        <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)" }}>Laporan masuk</div>
+                      </div>
+                      <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px", borderBottom: "4px solid #2ecc71" }}>
+                        <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--clr-gray-500)" }}>Kualitas SEGAR 🟢</div>
+                        <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#2ecc71", margin: "10px 0" }}>{stats.segar}</div>
+                        <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)" }}>Layak konsumsi</div>
+                      </div>
+                      <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px", borderBottom: "4px solid #e74c3c" }}>
+                        <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--clr-gray-500)" }}>Kualitas BASI 🔴</div>
+                        <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#e74c3c", margin: "10px 0" }}>{stats.basi}</div>
+                        <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)" }}>Tidak layak</div>
+                      </div>
                     </div>
-                    <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px" }}>
-                      <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>📊</div>
-                      <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>Info Nutrisi</div>
-                      <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)", marginTop: "4px" }}>Kalori, protein, dll</div>
+
+                  </div>
+                ) : (
+                  /* ========================================================= */
+                  /* TAMPILAN UNTUK PETUGAS LAPANGAN */
+                  /* ========================================================= */
+                  <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
+                    <h2 style={{ fontSize: "1.6rem", marginBottom: "0.5rem" }}>Selamat Datang di MBG Smart System</h2>
+                    <p style={{ color: "var(--clr-gray-500)", maxWidth: "500px", margin: "0 auto 2rem", lineHeight: "1.6" }}>
+                      Gunakan menu <strong>Kamera Langsung</strong> untuk memulai analisis kualitas dan gizi makanan. Sistem akan mendeteksi kesegaran makanan dan menampilkan informasi nutrisi secara real-time.
+                    </p>
+
+                    <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
+                      <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px" }}>
+                        <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>📷</div>
+                        <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>Deteksi Kualitas</div>
+                        <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)", marginTop: "4px" }}>AI-powered analysis</div>
+                      </div>
+                      <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px" }}>
+                        <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>📊</div>
+                        <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>Info Nutrisi</div>
+                        <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)", marginTop: "4px" }}>Kalori, protein, dll</div>
+                      </div>
+                      <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px" }}>
+                        <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>📋</div>
+                        <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>Log Riwayat</div>
+                        <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)", marginTop: "4px" }}>Rekam & pantau</div>
+                      </div>
                     </div>
-                    <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px" }}>
-                      <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>📋</div>
-                      <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>Log Riwayat</div>
-                      <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)", marginTop: "4px" }}>Rekam & pantau</div>
+
+                    <div style={{ width: "100%", maxWidth: "800px", padding: "1rem", margin: "3rem auto 0", textAlign: "left" }}>
+                      <div style={{ background: "#e8f4f8", borderLeft: "4px solid var(--clr-teal)", padding: "1rem 1.5rem", borderRadius: "var(--radius-sm)", marginBottom: "1.5rem" }}>
+                        <h3 style={{ fontSize: "1rem", color: "var(--clr-navy)", marginBottom: "6px" }}>📚 Sumber Referensi Gizi Valid</h3>
+                        <p style={{ fontSize: "0.85rem", color: "var(--clr-navy-dark)", lineHeight: "1.5", margin: 0 }}>
+                          Seluruh kalkulasi gizi pada MBG Smart System menggunakan standar perhitungan mutlak berdasarkan <strong>Tabel Komposisi Pangan Indonesia (TKPI)</strong> yang diterbitkan resmi oleh <strong>Kementerian Kesehatan Republik Indonesia</strong>. Data dihitung per 100 gram BDD (Berat Dapat Dimakan).
+                        </p>
+                      </div>
+
+                      <h3 style={{ fontSize: "1.2rem", color: "var(--clr-navy)", marginBottom: "1rem" }}>Daftar Kandungan Gizi (Menu Basis Data AI)</h3>
+                      <div style={{ overflowX: "auto", boxShadow: "var(--shadow-card)", borderRadius: "var(--radius-md)" }}>
+                        <table className="log-table" style={{ width: "100%", minWidth: "600px", textAlign: "left" }}>
+                          <thead>
+                            <tr><th>Jenis Makanan</th><th>Kalori (kkal)</th><th>Protein (g)</th><th>Lemak (g)</th><th>Karbo (g)</th><th>BDD (%)</th></tr>
+                          </thead>
+                          <tbody>
+                            {Object.values(DATABASE_GIZI).map((item: any, i) => (
+                              <tr key={i}><td>{item.nama}</td><td>{item.kalori}</td><td>{item.protein}</td><td>{item.lemak}</td><td>{item.karbo}</td><td>{item.bdd}%</td></tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
-
-                  <div style={{ width: "100%", maxWidth: "800px", padding: "1rem", margin: "3rem auto 0", textAlign: "left" }}>
-                    <div style={{ background: "#e8f4f8", borderLeft: "4px solid var(--clr-teal)", padding: "1rem 1.5rem", borderRadius: "var(--radius-sm)", marginBottom: "1.5rem" }}>
-                      <h3 style={{ fontSize: "1rem", color: "var(--clr-navy)", marginBottom: "6px" }}>📚 Sumber Referensi Gizi Valid</h3>
-                      <p style={{ fontSize: "0.85rem", color: "var(--clr-navy-dark)", lineHeight: "1.5", margin: 0 }}>
-                        Seluruh kalkulasi gizi pada MBG Smart System menggunakan standar perhitungan mutlak berdasarkan <strong>Tabel Komposisi Pangan Indonesia (TKPI)</strong> yang diterbitkan resmi oleh <strong>Kementerian Kesehatan Republik Indonesia</strong>. Data dihitung per 100 gram BDD (Berat Dapat Dimakan).
-                      </p>
-                    </div>
-
-                    <h3 style={{ fontSize: "1.2rem", color: "var(--clr-navy)", marginBottom: "1rem" }}>Daftar Kandungan Gizi (Menu Basis Data AI)</h3>
-                    <div style={{ overflowX: "auto", boxShadow: "var(--shadow-card)", borderRadius: "var(--radius-md)" }}>
-                      <table className="log-table" style={{ width: "100%", minWidth: "600px", textAlign: "left" }}>
-                        <thead>
-                          <tr><th>Jenis Makanan</th><th>Kalori (kkal)</th><th>Protein (g)</th><th>Lemak (g)</th><th>Karbo (g)</th><th>BDD (%)</th></tr>
-                        </thead>
-                        <tbody>
-                          <tr><td>🍚 Nasi Putih</td><td>180</td><td>3.0</td><td>0.3</td><td>39.8</td><td>100%</td></tr>
-                          <tr><td>🧈 Tahu</td><td>80</td><td>10.9</td><td>4.7</td><td>0.8</td><td>100%</td></tr>
-                          <tr><td>🧆 Tempe</td><td>201</td><td>20.8</td><td>8.8</td><td>13.5</td><td>100%</td></tr>
-                          <tr><td>🍗 Ayam Goreng</td><td>260</td><td>26.6</td><td>15.3</td><td>0.0</td><td>58%</td></tr>
-                          <tr><td>🐟 Ikan Goreng</td><td>200</td><td>20.0</td><td>12.0</td><td>0.0</td><td>80%</td></tr>
-                          <tr><td>🥚 Telur Ayam</td><td>154</td><td>12.4</td><td>10.8</td><td>0.7</td><td>89%</td></tr>
-                          <tr><td>🍎 Apel</td><td>58</td><td>0.3</td><td>0.4</td><td>14.9</td><td>88%</td></tr>
-                          <tr><td>🍌 Pisang</td><td>99</td><td>1.2</td><td>0.2</td><td>25.8</td><td>75%</td></tr>
-                          <tr><td>🥕 Wortel</td><td>36</td><td>1.0</td><td>0.6</td><td>7.9</td><td>88%</td></tr>
-                          <tr><td>🥦 Brokoli</td><td>34</td><td>2.8</td><td>0.4</td><td>6.6</td><td>77%</td></tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
             )}
 
-            {activePage === "camera" && (
+            {/* HALAMAN KAMERA HANYA MUNCUL UNTUK PETUGAS */}
+            {activePage === "camera" && !isAdmin && (
               <div className="dash-view active">
                 {cameraMode === "input" && (
                   <div className="camera-section">
@@ -493,7 +605,6 @@ export default function DashboardPage() {
                           <div style={{ fontSize: "1.05rem", fontWeight: "bold", color: "var(--clr-navy)", marginBottom: "4px" }}>{detectionResult.jenis_makanan}</div>
                           <div className="confidence-text">Kepercayaan: {Math.round(detectionResult.confidence * 100)}%</div>
                           
-                          {/* === UI TAMBAHAN LOKASI GPS === */}
                           <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)", marginTop: "8px", display: "flex", justifyContent: "center", alignItems: "center", gap: "4px", background: "#f8f9fa", padding: "6px 10px", borderRadius: "20px", display: "inline-flex" }}>
                             <span>📍</span> <span>{koordinat}</span>
                           </div>
@@ -517,6 +628,67 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {/* === HALAMAN PERSETUJUAN (KHUSUS ADMIN) === */}
+            {activePage === "approval" && isAdmin && (
+              <div className="dash-view active">
+                <div className="log-section" style={{ width: "100%" }}>
+                  <div style={{ marginBottom: "1.5rem" }}>
+                    <h2 style={{ margin: 0, color: "var(--clr-navy)", fontSize: "1.5rem" }}>🛡️ Verifikasi Petugas Baru</h2>
+                    <p style={{ fontSize: "0.85rem", color: "var(--clr-gray-500)", marginTop: "4px" }}>
+                      Daftar petugas yang menunggu persetujuan Anda untuk bisa login.
+                    </p>
+                  </div>
+                  
+                  {isLoadingPending ? (
+                    <p style={{ textAlign: "center", color: "var(--clr-gray-500)", padding: "2rem 0" }}>Memuat antrean pendaftar...</p>
+                  ) : pendingUsers.length === 0 ? (
+                    <div className="log-empty">
+                      <span style={{ fontSize: "2.5rem", display: "block", marginBottom: "10px" }}>🎉</span>
+                      Tidak ada antrean petugas baru saat ini.
+                    </div>
+                  ) : (
+                    <div style={{ overflowX: "auto", boxShadow: "var(--shadow-card)", borderRadius: "var(--radius-md)" }}>
+                      <table className="log-table" style={{ width: "100%", minWidth: "700px" }}>
+                        <thead>
+                          <tr>
+                            <th>Nama Lengkap</th>
+                            <th>Username</th>
+                            <th>No. Telp</th>
+                            <th>Lokasi Tugas</th>
+                            <th style={{ textAlign: "center" }}>Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pendingUsers.map((user) => (
+                            <tr key={user.id}>
+                              <td style={{ fontWeight: "700", color: "var(--clr-navy)" }}>{user.nama_lengkap}</td>
+                              <td>{user.username}</td>
+                              <td>{user.no_hp}</td>
+                              <td>{user.lokasi}</td>
+                              <td style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+                                <button 
+                                  onClick={() => handleUpdateStatusPetugas(user.id, "approved", user.nama_lengkap)}
+                                  style={{ background: "var(--clr-fresh)", color: "white", padding: "8px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "700" }}
+                                >
+                                  Setujui
+                                </button>
+                                <button 
+                                  onClick={() => handleUpdateStatusPetugas(user.id, "ditolak", user.nama_lengkap)}
+                                  style={{ background: "var(--clr-spoiled)", color: "white", padding: "8px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "700" }}
+                                >
+                                  Tolak
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {activePage === "log" && (
               <div className="dash-view active">
                 <div className="log-section">
@@ -537,7 +709,7 @@ export default function DashboardPage() {
                       <table className="log-table" style={{ width: "100%", minWidth: "700px" }}>
                         <thead>
                           <tr>
-                            <th>Waktu</th><th>Status</th><th>Makanan</th><th>Petugas</th><th>Lokasi GPS</th><th style={{ textAlign: "center" }}>Aksi</th>
+                            <th>Waktu</th><th>Status</th><th>Makanan</th><th>Petugas</th><th>Akurasi</th><th style={{ textAlign: "center" }}>Aksi</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -547,7 +719,7 @@ export default function DashboardPage() {
                               <td><span className={`badge ${log.status === "SEGAR" ? "badge-fresh" : "badge-spoiled"}`}>{log.status}</span></td>
                               <td style={{ fontWeight: "600" }}>{log.jenis_makanan}</td>
                               <td>{log.petugas_nama}</td>
-                              <td style={{ fontSize: "0.75rem", color: "var(--clr-teal)" }}>{log.koordinat_lokasi || "-"}</td>
+                              <td>{Math.round(log.confidence * 100)}%</td>
                               <td style={{ textAlign: "center" }}>
                                 <button onClick={() => handleSoftDelete(log.id)} title="Pindah ke Sampah" style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "1.2rem", opacity: "0.7", transition: "0.3s" }} onMouseOver={(e) => e.currentTarget.style.opacity = "1"} onMouseOut={(e) => e.currentTarget.style.opacity = "0.7"}>
                                   🗑️

@@ -1,9 +1,10 @@
-/* ================================================================
-   MBG Smart System — Stylesheet v2.0
-   Coastal-Teal Theme | Outfit Font | Responsive
-   ================================================================ */
+/* Letakkan ini di baris PALING ATAS globals.css */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 
-/* ======================== DESIGN TOKENS ======================== */
+/* ================================================================
+   MBG Smart System — Stylesheet v3.0
+   ... (sisa kodemu di bawahnya) ...
+*/
 :root {
   /* Primary Palette */
   --clr-navy: #335765;
@@ -55,9 +56,9 @@ html {
 }
 
 body {
-  font-family: "Outfit", sans-serif;
+  font-family: 'Poppins', sans-serif; /* <--- UBAH NAMA FONT DI SINI */
   background-color: var(--clr-bg);
-  color: var(--clr-navy);
+  color: var(--clr-gray-800); 
   min-height: 100vh;
   overflow-x: hidden;
 }
@@ -75,11 +76,19 @@ body {
   overflow: hidden;
 }
 
+/* ======================================================= */
+/* PENGATURAN GAMBAR LATAR BELAKANG */
+/* ======================================================= */
 .food-flake {
   position: absolute;
-  opacity: 0.13;
-  filter: grayscale(5%);
+  opacity: 1 !important; /* Diubah menjadi 1 agar 100% jelas dan tidak transparan */
   animation: floatFood 20s ease-in-out infinite;
+}
+
+/* Tambahkan ini untuk memastikan gambar img di dalamnya juga tajam */
+.food-flake img {
+  opacity: 1 !important;
+  filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.15)); /* Bayangan tipis agar gambar terlihat nyata dan tidak kaku */
 }
 
 .food-flake:nth-child(odd) {
@@ -88,20 +97,16 @@ body {
 }
 
 @keyframes floatFood {
-
   0%,
   100% {
     transform: translateY(0) rotate(0deg);
   }
-
   25% {
     transform: translateY(-8px) rotate(3deg);
   }
-
   50% {
     transform: translateY(4px) rotate(-2deg);
   }
-
   75% {
     transform: translateY(-5px) rotate(1deg);
   }
@@ -124,7 +129,6 @@ body {
     opacity: 0;
     transform: translateY(12px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -147,7 +151,6 @@ body {
     opacity: 0;
     transform: scale(0.96) translateY(15px);
   }
-
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -195,10 +198,11 @@ body {
   align-items: center;
   border: 1.5px solid var(--clr-teal);
   border-radius: var(--radius-sm);
-  padding: 12px 15px;
   margin-bottom: 14px;
   background: var(--clr-white);
   transition: var(--transition);
+  position: relative; /* Wajib untuk ikon mata (absolute) */
+  overflow: hidden; 
 }
 
 .input-group:focus-within {
@@ -207,10 +211,12 @@ body {
 }
 
 .input-icon {
+  position: absolute;
+  left: 15px; /* Posisikan ikon di kiri */
   color: var(--clr-teal);
-  margin-right: 12px;
   display: flex;
   flex-shrink: 0;
+  z-index: 5;
 }
 
 .input-group input {
@@ -222,10 +228,38 @@ body {
   color: var(--clr-navy);
   background: transparent;
   width: 100%;
+  padding: 12px 45px 12px 15px; /* Padding kiri & kanan agar teks tidak menabrak ikon */
+  z-index: 1;
+}
+
+/* ======================================================== */
+/* TAMBAHAN BARU: Hanya geser teks jika ada ikon di kirinya */
+/* ======================================================== */
+.input-icon + input {
+  padding-left: 50px;
 }
 
 .input-group input::placeholder {
   color: var(--clr-gray-400);
+}
+
+/* Tombol Toggle Mata */
+.password-toggle-btn {
+  position: absolute;
+  right: 15px; /* Posisikan di pojok kanan */
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  z-index: 10;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.password-toggle-btn:hover {
+  opacity: 1;
 }
 
 /* Auth Actions */
@@ -307,24 +341,19 @@ body {
 }
 
 @keyframes shake {
-
   0%,
   100% {
     transform: translateX(0);
   }
-
   20% {
     transform: translateX(-6px);
   }
-
   40% {
     transform: translateX(6px);
   }
-
   60% {
     transform: translateX(-4px);
   }
-
   80% {
     transform: translateX(4px);
   }
@@ -728,14 +757,12 @@ body {
 }
 
 @keyframes dotPulse {
-
   0%,
   80%,
   100% {
     transform: scale(0.6);
     opacity: 0.4;
   }
-
   40% {
     transform: scale(1);
     opacity: 1;
@@ -1128,7 +1155,6 @@ body {
     opacity: 0;
     transform: translateY(20px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1140,7 +1166,6 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
-
   to {
     opacity: 0;
     transform: translateY(20px);
@@ -1179,12 +1204,10 @@ body {
   .step-indicators {
     gap: 8px;
   }
-
   .step-item {
     min-width: 100px;
     padding: 8px 12px;
   }
-
   .step-label {
     font-size: 0.72rem;
   }
@@ -1194,73 +1217,58 @@ body {
   .sidebar {
     transform: translateX(-100%);
   }
-
   .sidebar.open {
     transform: translateX(0);
   }
-
   .sidebar-overlay.open {
     display: block;
   }
-
   .hamburger {
     display: flex;
   }
-
   .main-content {
     margin-left: 0;
   }
-
   .top-bar {
     padding: 0.75rem 1rem;
     padding-left: 60px;
     flex-direction: column;
     align-items: stretch;
   }
-
   .step-indicators {
     order: 2;
     flex-wrap: wrap;
     justify-content: center;
   }
-
   .step-item {
     min-width: 90px;
     padding: 6px 10px;
   }
-
   .step-icon {
     width: 30px;
     height: 30px;
     font-size: 0.85rem;
   }
-
   .profile-badge {
     order: 1;
     align-self: flex-end;
   }
-
   .dashboard-body {
     padding: 1rem;
   }
-
   .camera-viewport {
     height: 300px;
   }
-
   .auth-card {
     padding: 2rem 1.5rem;
     margin: 0.5rem;
   }
-
   .auth-brand h1 {
     font-size: 1.7rem;
   }
-
   .nutrition-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-
   .action-cluster {
     flex-direction: column;
     gap: 14px;
@@ -1271,19 +1279,15 @@ body {
   .auth-brand h1 {
     font-size: 1.5rem;
   }
-
   .step-indicators {
     gap: 6px;
   }
-
   .step-item {
     min-width: 80px;
   }
-
   .step-label {
     font-size: 0.68rem;
   }
-
   .profile-badge {
     padding: 8px 12px;
   }
