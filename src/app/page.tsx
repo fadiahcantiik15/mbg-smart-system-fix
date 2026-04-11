@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import bcrypt from "bcryptjs";
@@ -24,6 +24,17 @@ export default function LoginPage() {
   const [showPasswordRegister, setShowPasswordRegister] = useState(false);
   const [showConfirmPassRegister, setShowConfirmPassRegister] = useState(false);
 
+  // ==========================================
+  // --- States untuk Custom Pop-up ---
+  // ==========================================
+  const [popupConfig, setPopupConfig] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    icon: "✅",
+    actionType: "none" // "none" atau "reload"
+  });
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [namaLengkap, setNamaLengkap] = useState("");
@@ -39,7 +50,38 @@ export default function LoginPage() {
   const [newPassword, setNewPassword] = useState("");
 
   // ==========================================
-  // KOMPONEN TOMBOL MATA (Toggle Password)
+  // PEMBERSIH FORM OTOMATIS SAAT PINDAH HALAMAN
+  // ==========================================
+  useEffect(() => {
+    setUsername("");
+    setPassword("");
+    setConfirmPass("");
+    setNamaLengkap("");
+    setNoHp("");
+    setLokasi("");
+    setResetPhone("");
+    setNewPassword("");
+    setOtpInput(["", "", "", "", "", ""]);
+    setErrorMsg("");
+    setSuccessMsg("");
+  }, [view]);
+
+  // ==========================================
+  // FUNGSI KONTROL POP-UP
+  // ==========================================
+  const showCustomPopup = (title: string, message: string, icon: string = "✅", actionType: string = "none") => {
+    setPopupConfig({ isOpen: true, title, message, icon, actionType });
+  };
+
+  const closeCustomPopup = () => {
+    setPopupConfig({ ...popupConfig, isOpen: false });
+    if (popupConfig.actionType === "reload") {
+      window.location.reload();
+    }
+  };
+
+  // ==========================================
+  // KOMPONEN TOMBOL MATA (Toggle Password) PAKE SVG
   // ==========================================
   const PasswordToggle = ({ isVisible, setIsVisible }: { isVisible: boolean, setIsVisible: (val: boolean) => void }) => (
     <button
@@ -48,12 +90,17 @@ export default function LoginPage() {
       onClick={() => setIsVisible(!isVisible)}
       title={isVisible ? "Sembunyikan Sandi" : "Tampilkan Sandi"}
     >
-      <img 
-        // Menggunakan ikon kustom dari aset lokal
-        src={isVisible ? "/assets/iconpass-open.png" : "/assets/iconpass-hidden.png"} 
-        alt={isVisible ? "Sembunyikan" : "Tampilkan"} 
-        style={{ width: "20px", height: "20px", objectFit: "contain" }} 
-      />
+      {isVisible ? (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      ) : (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        </svg>
+      )}
     </button>
   );
 
@@ -61,6 +108,13 @@ export default function LoginPage() {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
+
+    // Validasi Nomor HP
+    if (resetPhone.startsWith("0") || !resetPhone.startsWith("62")) {
+      setErrorMsg("Nomor telepon harus diawali dengan angka 62, bukan 0!");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -139,8 +193,13 @@ export default function LoginPage() {
       const salt = bcrypt.genSaltSync(10);
       const hashedPassword = bcrypt.hashSync(newPassword, salt);
       await supabase.from("users").update({ password: hashedPassword, otp_code: null, otp_expiry: null }).eq("id", targetUser.id);
-      alert("Sandi berhasil diperbarui! Silakan login kembali.");
-      window.location.reload(); 
+      
+      showCustomPopup(
+        "Sandi Diperbarui!", 
+        "Kata sandi Anda berhasil diperbarui. Halaman akan dimuat ulang, silakan login kembali.", 
+        "/assets/checklist.png", 
+        "reload"
+      );
     } catch (err: any) { setErrorMsg(err.message); } finally { setIsLoading(false); }
   };
 
@@ -168,14 +227,39 @@ export default function LoginPage() {
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMsg("");
+
+   // Validasi Nomor HP
+    if (noHp.startsWith("0") || !noHp.startsWith("62")) {
+      setErrorMsg("Nomor telepon harus diawali dengan angka 62, bukan 0!");
+      return;
+    }
+
     if (password !== confirmPass) { setErrorMsg("Konfirmasi kata sandi tidak cocok!"); return; }
     if (password.length < 8 || (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password))) {
       setErrorMsg("Sandi harus minimal 8 karakter & mengandung huruf serta angka!"); return;
     }
     setIsLoading(true);
-    try {
-      const { data: existingUser } = await supabase.from("users").select("username").eq("username", username.toLowerCase()).single();
-      if (existingUser) throw new Error("Username sudah digunakan!");
+   try {
+      // Pengecekan Username ATAU Nomor HP di database
+      const { data: existingUser } = await supabase
+        .from("users")
+        .select("username, no_hp")
+        .or(`username.eq.${username.toLowerCase()},no_hp.eq.${noHp}`);
+
+      if (existingUser && existingUser.length > 0) {
+        // Cek satu per satu
+        const isUsernameTaken = existingUser.some(u => u.username === username.toLowerCase());
+        const isPhoneTaken = existingUser.some(u => u.no_hp === noHp);
+
+        // === LOGIKA BARU: Tampilkan error sesuai kondisi ===
+        if (isUsernameTaken && isPhoneTaken) {
+          throw new Error("Username dan Nomor Telepon sudah digunakan!");
+        } else if (isUsernameTaken) {
+          throw new Error("Username sudah digunakan!");
+        } else if (isPhoneTaken) {
+          throw new Error("Nomor Telepon ini sudah terdaftar pada akun lain!");
+        }
+      }
       
       const salt = bcrypt.genSaltSync(10);
       const hashedPassword = bcrypt.hashSync(password, salt);
@@ -192,10 +276,14 @@ export default function LoginPage() {
       
       if (error) throw error;
       
-      alert("Akun telah didaftarkan, silakan menunggu proses persetujuan admin.");
+      showCustomPopup(
+        "Pendaftaran Berhasil!", 
+        "Akun telah didaftarkan, silakan menunggu proses persetujuan administrator sistem.", 
+        "/assets/checklist.png", 
+        "none"
+      );
       
       setView("login"); 
-      setUsername(""); setPassword(""); setConfirmPass(""); setNamaLengkap(""); setNoHp(""); setLokasi("");
     } catch (err: any) { setErrorMsg(err.message); } finally { setIsLoading(false); }
   };
 
@@ -241,7 +329,6 @@ export default function LoginPage() {
                   <input type="text" placeholder="Username (Misal: Fadiah)" required value={username} onChange={(e) => setUsername(e.target.value)} />
                 </div>
                 
-                {/* Input Password Login dengan Fitur Mata */}
                 <div className="input-group">
                   <span className="input-icon">
                     <img src="/assets/icon-lock.png" alt="Lock Icon" style={{ width: "26px", height: "26px", objectFit: "contain" }} />
@@ -263,7 +350,7 @@ export default function LoginPage() {
               </form>
 
               <p style={{ textAlign: "center", marginTop: "1.5rem", fontSize: "0.85rem" }}>
-                Belum punya akun? <a href="#" style={{ color: "var(--clr-teal)", fontWeight: "bold" }} onClick={(e) => { e.preventDefault(); setView("register"); setErrorMsg(""); setShowPasswordLogin(false); }}>Daftar Sekarang</a>
+                Belum punya akun? <a href="#" style={{ color: "var(--clr-teal)", fontWeight: "bold" }} onClick={(e) => { e.preventDefault(); setView("register"); }}>Daftar Sekarang</a>
               </p>
               
               <div className="auth-footer" style={{ marginTop: "2rem", borderTop: "1px solid var(--clr-gray-200)", paddingTop: "1.5rem" }}>
@@ -294,10 +381,18 @@ export default function LoginPage() {
               <form onSubmit={handleRegister}>
                 <div className="input-group"><input type="text" placeholder="Nama Lengkap" required value={namaLengkap} onChange={(e) => setNamaLengkap(e.target.value)} /></div>
                 <div className="input-group"><input type="text" placeholder="Username" required value={username} onChange={(e) => setUsername(e.target.value)} /></div>
-                <div className="input-group"><input type="tel" placeholder="Nomor Telepon (Awali 628...)" required value={noHp} onChange={(e) => setNoHp(e.target.value.replace(/\D/g, ""))} /></div>
+                
+                <div className="input-group" style={{ marginBottom: noHp.startsWith("0") ? "4px" : "14px" }}>
+                  <input type="tel" placeholder="Nomor Telepon (Awali 628...)" required value={noHp} onChange={(e) => setNoHp(e.target.value.replace(/\D/g, ""))} />
+                </div>
+                {noHp.startsWith("0") && (
+                  <p style={{ fontSize: "0.75rem", color: "var(--clr-spoiled)", marginTop: "-6px", marginBottom: "12px", marginLeft: "4px", fontWeight: "bold" }}>
+                    ⚠️ Harap gunakan 62 di awal, bukan 0.
+                  </p>
+                )}
+
                 <div className="input-group"><input type="text" placeholder="Lokasi Tugas (Dapur MBG)" required value={lokasi} onChange={(e) => setLokasi(e.target.value)} /></div>
                 
-                {/* Input Kata Sandi Daftar dengan Fitur Mata */}
                 <div className="input-group" style={{ marginBottom: "8px" }}>
                   <input 
                     type={showPasswordRegister ? "text" : "password"} 
@@ -311,7 +406,6 @@ export default function LoginPage() {
                 
                 <p style={{ fontSize: "0.75rem", color: "var(--clr-gray-500)", marginTop: "0", marginBottom: "12px", marginLeft: "4px" }}>*Minimal 8 karakter, kombinasi huruf & angka</p>
                 
-                {/* Input Konfirmasi Sandi Daftar dengan Fitur Mata */}
                 <div className="input-group">
                   <input 
                     type={showConfirmPassRegister ? "text" : "password"} 
@@ -325,7 +419,7 @@ export default function LoginPage() {
                 
                 <button type="submit" className="btn-primary btn-primary-full" disabled={isLoading}>{isLoading ? "Mendaftarkan..." : "Daftar Akun"}</button>
               </form>
-              <p style={{ textAlign: "center", marginTop: "1rem", fontSize: "0.85rem" }}>Sudah punya akun? <a href="#" style={{ color: "var(--clr-teal)", fontWeight: "bold" }} onClick={(e) => { e.preventDefault(); setView("login"); setErrorMsg(""); setShowPasswordRegister(false); setShowConfirmPassRegister(false); }}>Login</a></p>
+              <p style={{ textAlign: "center", marginTop: "1rem", fontSize: "0.85rem" }}>Sudah punya akun? <a href="#" style={{ color: "var(--clr-teal)", fontWeight: "bold" }} onClick={(e) => { e.preventDefault(); setView("login"); }}>Login</a></p>
             </>
           )}
 
@@ -338,10 +432,16 @@ export default function LoginPage() {
               {resetStep === 1 && (
                 <form onSubmit={handleResetRequest}>
                   <p className="auth-subtitle">Masukkan nomor telepon terdaftar (Awali dengan 62).</p>
-                  <div className="input-group">
+                  
+                  <div className="input-group" style={{ marginBottom: resetPhone.startsWith("0") ? "4px" : "14px" }}>
                     <span className="input-icon">📱</span>
                     <input type="tel" placeholder="Contoh: 628123456789" required value={resetPhone} onChange={(e) => setResetPhone(e.target.value.replace(/\D/g, ""))} />
                   </div>
+                  {resetPhone.startsWith("0") && (
+                    <p style={{ fontSize: "0.75rem", color: "var(--clr-spoiled)", marginTop: "-6px", marginBottom: "16px", marginLeft: "4px", fontWeight: "bold", textAlign: "left" }}>
+                      ⚠️ Harap gunakan 62 di awal, bukan 0.
+                    </p>
+                  )}
 
                   <p className="method-label">Pilih Metode:</p>
                   <div className="method-toggle">
@@ -380,7 +480,6 @@ export default function LoginPage() {
               {resetStep === 3 && (
                 <form onSubmit={handleUpdatePassword}>
                   <p className="auth-subtitle">Buat kata sandi baru Anda.</p>
-                  {/* Input Sandi Baru Lupa Sandi dengan Fitur Mata */}
                   <div className="input-group">
                     <span className="input-icon">🔒</span>
                     <input 
@@ -397,12 +496,35 @@ export default function LoginPage() {
               )}
 
               <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
-                <a href="#" className="link-action" onClick={(e) => { e.preventDefault(); setView("login"); setResetStep(1); setSuccessMsg(""); setErrorMsg(""); setShowPasswordLogin(false); }}>Kembali ke Halaman Login</a>
+                <a href="#" className="link-action" onClick={(e) => { e.preventDefault(); setView("login"); setResetStep(1); }}>Kembali ke Halaman Login</a>
               </div>
             </>
           )}
         </div>
       </div>
+
+      {popupConfig.isOpen && (
+        <div className="custom-popup-overlay">
+          <div className="custom-popup-card">
+            
+            <div className="popup-icon" style={{ display: "flex", justifyContent: "center" }}>
+              {popupConfig.icon.startsWith("/assets/") ? (
+                <img 
+                  src={popupConfig.icon} 
+                  alt="Status Icon" 
+                  style={{ width: "80px", height: "80px", objectFit: "contain", marginBottom: "10px" }} 
+                />
+              ) : (
+                popupConfig.icon
+              )}
+            </div>
+
+            <h3 className="popup-title">{popupConfig.title}</h3>
+            <p className="popup-message">{popupConfig.message}</p>
+            <button onClick={closeCustomPopup} className="btn-popup">Tutup</button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

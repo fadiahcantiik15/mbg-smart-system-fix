@@ -51,6 +51,11 @@ export default function DashboardPage() {
   const [editForm, setEditForm] = useState({ nama_lengkap: "", lokasi: "", no_hp: "" });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
+  // ==========================================
+  // TAMBAHAN: State Konfirmasi Keluar
+  // ==========================================
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
   useEffect(() => {
     const userStr = localStorage.getItem("mbg_user");
     if (!userStr) {
@@ -66,9 +71,6 @@ export default function DashboardPage() {
     }
   }, [router]);
 
-  // ==========================================
-  // FUNGSI FETCH DATA DARI SUPABASE
-  // ==========================================
   const fetchLogs = async () => {
     try {
       const { data, error } = await supabase
@@ -147,22 +149,47 @@ export default function DashboardPage() {
     return () => stopCamera();
   }, [activePage, cameraMode]);
 
-  // === MINTA IZIN LOKASI & FETCH DATA ===
   useEffect(() => {
     if (activePage === "log" || activePage === "home") fetchLogs();
     if (activePage === "sampah") fetchTrash();
-    if (activePage === "approval") fetchPendingUsers(); // Fetch data approval jika menu aktif
+    if (activePage === "approval") fetchPendingUsers(); 
     
+    // ==========================================
+    // REVERSE GEOCODING DENGAN \n (ENTER)
+    // ==========================================
     if (activePage === "camera") {
       if ("geolocation" in navigator) {
-        setKoordinat("Mencari lokasi...");
+        setKoordinat("Mencari lokasi & alamat...");
         navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setKoordinat(`${position.coords.latitude}, ${position.coords.longitude}`);
+          async (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const rawCoords = `${lat}, ${lon}`;
+
+            try {
+              const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+                { headers: { 'User-Agent': 'MBG-Smart-System-App' } }
+              );
+              const data = await response.json();
+              
+              if (data && data.display_name) {
+                const addressParts = data.display_name.split(", ");
+                const shortAddress = addressParts.slice(0, 4).join(", ");
+                
+                // Gunakan \n untuk memisahkan baris
+                setKoordinat(`${shortAddress}\n(${rawCoords})`);
+              } else {
+                setKoordinat(rawCoords);
+              }
+            } catch (err) {
+              console.error("Gagal menerjemahkan alamat:", err);
+              setKoordinat(rawCoords); 
+            }
           },
           (error) => {
             console.warn("Gagal mendapat lokasi:", error.message);
-            setKoordinat("Izin lokasi ditolak");
+            setKoordinat("Izin lokasi ditolak (Pastikan GPS menyala)");
           }
         );
       } else {
@@ -171,9 +198,6 @@ export default function DashboardPage() {
     }
   }, [activePage]);
 
-  // ==========================================
-  // FUNGSI KAMERA & AI MOCKUP
-  // ==========================================
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
@@ -244,9 +268,6 @@ export default function DashboardPage() {
     }, 1500);
   };
 
-  // ==========================================
-  // FUNGSI SIMPAN, HAPUS, RESTORE, APPROVAL
-  // ==========================================
   const handleSaveResult = async () => {
     if (!detectionResult || !currentUser) return;
 
@@ -322,15 +343,15 @@ export default function DashboardPage() {
     } catch (err: any) { alert("Gagal mengubah status: " + err.message); }
   };
 
-  // ==========================================
-  // FUNGSI LAINNYA
-  // ==========================================
   const handleExportExcel = () => {
     if (logEntries.length === 0) { alert("Belum ada data untuk diunduh."); return; }
     let csv = "Waktu,Status,Jenis Makanan,Petugas,Akurasi,Lokasi GPS,Kalori (kkal),Protein (g),Lemak (g),Karbo (g)\n";
     logEntries.forEach((log) => {
       const waktu = new Date(log.created_at).toLocaleString("id-ID").replace(/,/g, " ");
-      const gps = log.koordinat_lokasi ? `"${log.koordinat_lokasi}"` : "-";
+      
+      // Amankan ekspor Excel dari enter (\n)
+      const gps = log.koordinat_lokasi ? `"${log.koordinat_lokasi.replace(/\n/g, ' ')}"` : "-";
+      
       csv += `${waktu},${log.status},${log.jenis_makanan},${log.petugas_nama},${Math.round(log.confidence * 100)}%,${gps},${log.kalori},${log.protein},${log.lemak},${log.karbo}\n`;
     });
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -341,9 +362,20 @@ export default function DashboardPage() {
   };
 
   const handleExportPDF = () => { window.print(); };
-  const handleLogout = () => { localStorage.removeItem("mbg_user"); router.push("/"); };
+  
+  const handleLogoutClick = () => {
+    setIsLogoutModalOpen(true);
+    setIsSidebarOpen(false); 
+  };
+
+  const confirmLogout = () => { 
+    localStorage.removeItem("mbg_user"); 
+    router.push("/"); 
+  };
+
   const showToast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(""), 3000); };
   const openEditModal = () => { setEditForm({ nama_lengkap: currentUser.nama_lengkap || "", lokasi: currentUser.lokasi || "", no_hp: currentUser.no_hp || "" }); setIsEditModalOpen(true); };
+  
   const handleSaveProfil = async (e: React.FormEvent) => {
     e.preventDefault(); setIsSavingProfile(true);
     try {
@@ -360,22 +392,25 @@ export default function DashboardPage() {
   return (
     <>
       <div className="food-layer" id="food-bg">
-        <div className="food-flake" style={{ top: "4%", left: "6%", fontSize: "3.8rem" }}>🍎</div>
-        <div className="food-flake" style={{ top: "12%", left: "22%", fontSize: "2.8rem" }}>🌾</div>
-        <div className="food-flake" style={{ top: "6%", left: "42%", fontSize: "3.2rem" }}>🐟</div>
-        <div className="food-flake" style={{ top: "3%", right: "28%", fontSize: "3.5rem" }}>🍗</div>
-        <div className="food-flake" style={{ top: "14%", right: "8%", fontSize: "3rem" }}>🍌</div>
-        <div className="food-flake" style={{ top: "35%", left: "4%", fontSize: "3.5rem" }}>🥦</div>
-        <div className="food-flake" style={{ top: "50%", left: "15%", fontSize: "3rem" }}>🧅</div>
-        <div className="food-flake" style={{ top: "60%", right: "6%", fontSize: "3.6rem" }}>🧅</div>
-        <div className="food-flake" style={{ top: "42%", right: "18%", fontSize: "3.2rem" }}>🥛</div>
-        <div className="food-flake" style={{ bottom: "18%", left: "10%", fontSize: "3rem" }}>🥕</div>
-        <div className="food-flake" style={{ bottom: "8%", left: "35%", fontSize: "2.5rem" }}>⭐</div>
-        <div className="food-flake" style={{ bottom: "5%", right: "25%", fontSize: "3.4rem" }}>🍱</div>
-        <div className="food-flake" style={{ bottom: "15%", right: "5%", fontSize: "3rem" }}>🥚</div>
-        <div className="food-flake" style={{ top: "28%", left: "38%", fontSize: "2.8rem" }}>🫑</div>
+        <div className="food-flake" style={{ top: "8%", left: "5%", width: "90px" }}><img src="/assets/tempe.png" alt="Tempe" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "20%", left: "20%", width: "90px" }}><img src="/assets/tahu.png" alt="Tahu" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "40%", left: "7%", width: "90px" }}><img src="/assets/apel.png" alt="Apel" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "50%", left: "25%", width: "130px" }}><img src="/assets/ikan.png" alt="Ikan" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "70%", left: "10%", width: "100px" }}><img src="/assets/Nasi.png" alt="Nasi" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "85%", left: "20%", width: "100px" }}><img src="/assets/telur.png" alt="Telur" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "10%", left: "31%", width: "130px" }}><img src="/assets/ayam.png" alt="Ayam" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "3%", left: "50%", width: "100px" }}><img src="/assets/brokoli.png" alt="Brokoli" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "85%", left: "40%", width: "120px" }}><img src="/assets/wortel.png" alt="Wortel" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "78%", left: "60%", width: "100px" }}><img src="/assets/pisang.png" alt="Pisang" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "7%", right: "7%", width: "100px" }}><img src="/assets/Nasi.png" alt="Nasi" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "40%", right: "3%", width: "100px" }}><img src="/assets/pisang.png" alt="Pisang" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "15%", right: "25%", width: "100px" }}><img src="/assets/telur.png" alt="Telur" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "30%", right: "15%", width: "90px" }}><img src="/assets/tempe.png" alt="Tempe" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "45%", right: "20%", width: "130px" }}><img src="/assets/ayam.png" alt="Ayam" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "70%", right: "7%", width: "90px" }}><img src="/assets/apel.png" alt="Apel" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "80%", right: "20%", width: "90px" }}><img src="/assets/tahu.png" alt="Tahu" style={{ width: "100%", height: "auto" }} /></div>
       </div>
-
+      
       <div className="dashboard-wrapper">
         <button className="hamburger" onClick={() => setIsSidebarOpen(true)}>☰</button>
         <div className={`sidebar-overlay ${isSidebarOpen ? "open" : ""}`} onClick={() => setIsSidebarOpen(false)}></div>
@@ -391,14 +426,12 @@ export default function DashboardPage() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg> Halaman Utama
             </button>
 
-            {/* Menu Kamera disembunyikan jika yang login adalah Admin */}
             {!isAdmin && (
               <button className={`nav-item ${activePage === "camera" ? "active" : ""}`} onClick={() => { setActivePage("camera"); setIsSidebarOpen(false); }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg> Kamera Langsung
               </button>
             )}
 
-            {/* === MENU KHUSUS ADMIN === */}
             {isAdmin && (
               <button className={`nav-item ${activePage === "approval" ? "active" : ""}`} onClick={() => { setActivePage("approval"); setIsSidebarOpen(false); }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg> Verifikasi Petugas
@@ -417,7 +450,7 @@ export default function DashboardPage() {
           </nav>
 
           <div className="sidebar-footer">
-            <button className="btn-logout" onClick={handleLogout}>
+            <button className="btn-logout" onClick={handleLogoutClick}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg> Keluar
             </button>
           </div>
@@ -436,7 +469,6 @@ export default function DashboardPage() {
           `}</style>
 
           <div className="top-bar">
-            {/* Sembunyikan Step 1-2-3 jika yang login adalah Admin */}
             {!isAdmin ? (
               <div className="step-indicators">
                 <div className="step-item"><div className="step-icon">📷</div><span className="step-label">1. Arahkan Kamera</span></div>
@@ -444,7 +476,6 @@ export default function DashboardPage() {
                 <div className="step-item"><div className="step-icon">📊</div><span className="step-label">3. Lihat Hasil Gizi</span></div>
               </div>
             ) : (
-              /* === TAMPILAN HEADER KHUSUS ADMIN === */
               <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "#e8f4f8", padding: "8px 16px", borderRadius: "30px", border: "1px solid #bde0eb" }}>
                 <span style={{ fontSize: "1.2rem" }}>📅</span>
                 <span style={{ color: "var(--clr-navy)", fontWeight: "600", fontSize: "0.9rem" }}>
@@ -470,9 +501,6 @@ export default function DashboardPage() {
           <div className="dashboard-body">
             {activePage === "home" && (
               <div className="dash-view active">
-                {/* ========================================================= */}
-                {/* TAMPILAN KHUSUS ADMIN (STATISTIK) */}
-                {/* ========================================================= */}
                 {isAdmin ? (
                   <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
                     <h2 style={{ fontSize: "1.8rem", marginBottom: "0.5rem", color: "var(--clr-navy)" }}>Dashboard Administrator</h2>
@@ -480,7 +508,6 @@ export default function DashboardPage() {
                       Pantau secara *real-time* kualitas makanan dan performa petugas lapangan dari seluruh Dapur MBG.
                     </p>
 
-                    {/* KARTU STATISTIK */}
                     <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap", marginBottom: "3rem" }}>
                       <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px", borderBottom: "4px solid var(--clr-teal)" }}>
                         <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--clr-gray-500)" }}>Total Pemeriksaan</div>
@@ -501,9 +528,6 @@ export default function DashboardPage() {
 
                   </div>
                 ) : (
-                  /* ========================================================= */
-                  /* TAMPILAN UNTUK PETUGAS LAPANGAN */
-                  /* ========================================================= */
                   <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
                     <h2 style={{ fontSize: "1.6rem", marginBottom: "0.5rem" }}>Selamat Datang di MBG Smart System</h2>
                     <p style={{ color: "var(--clr-gray-500)", maxWidth: "500px", margin: "0 auto 2rem", lineHeight: "1.6" }}>
@@ -555,7 +579,6 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* HALAMAN KAMERA HANYA MUNCUL UNTUK PETUGAS */}
             {activePage === "camera" && !isAdmin && (
               <div className="dash-view active">
                 {cameraMode === "input" && (
@@ -571,6 +594,33 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <p className="camera-hint">Arahkan kamera ke makanan</p>
+
+                    {/* Tampilan Alamat Real-time di layar kamera */}
+                    <div style={{ 
+                      marginTop: "12px", 
+                      fontSize: "0.85rem", 
+                      color: "var(--clr-navy)", 
+                      background: "white", 
+                      padding: "8px 16px", 
+                      borderRadius: "12px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      textAlign: "center",
+                      gap: "2px",
+                      maxWidth: "90%"
+                    }}>
+                      <div style={{ fontWeight: "700", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ color: "#e74c3c" }}>📍</span>
+                        <span>{koordinat.split('\n')[0]}</span> 
+                      </div>
+                      {koordinat.includes('\n') && (
+                        <div style={{ fontSize: "0.75rem", color: "var(--clr-gray-500)", fontFamily: "monospace" }}>
+                          {koordinat.split('\n')[1]}
+                        </div>
+                      )}
+                    </div>
 
                     <div className="action-cluster">
                       <button className="shutter-btn" title="Ambil Foto" onClick={handleCapture}><span className="shutter-inner"></span></button>
@@ -605,8 +655,30 @@ export default function DashboardPage() {
                           <div style={{ fontSize: "1.05rem", fontWeight: "bold", color: "var(--clr-navy)", marginBottom: "4px" }}>{detectionResult.jenis_makanan}</div>
                           <div className="confidence-text">Kepercayaan: {Math.round(detectionResult.confidence * 100)}%</div>
                           
-                          <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)", marginTop: "8px", display: "flex", justifyContent: "center", alignItems: "center", gap: "4px", background: "#f8f9fa", padding: "6px 10px", borderRadius: "20px", display: "inline-flex" }}>
-                            <span>📍</span> <span>{koordinat}</span>
+                          <div style={{ 
+                            fontSize: "0.85rem", 
+                            color: "var(--clr-navy)", 
+                            marginTop: "12px", 
+                            display: "flex", 
+                            flexDirection: "column", 
+                            justifyContent: "center", 
+                            alignItems: "center", 
+                            gap: "4px", 
+                            background: "#f8f9fa", 
+                            padding: "10px 16px", 
+                            borderRadius: "12px", 
+                            width: "100%",
+                            textAlign: "center"
+                          }}>
+                            <div style={{ fontWeight: "600", display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span style={{ color: "#e74c3c", fontSize: "1.1rem" }}>📍</span> 
+                              <span>{koordinat.split('\n')[0]}</span>
+                            </div>
+                            {koordinat.includes('\n') && (
+                              <div style={{ fontSize: "0.75rem", color: "var(--clr-gray-500)", fontFamily: "monospace" }}>
+                                {koordinat.split('\n')[1]}
+                              </div>
+                            )}
                           </div>
 
                           <div className="nutrition-grid">
@@ -628,7 +700,6 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* === HALAMAN PERSETUJUAN (KHUSUS ADMIN) === */}
             {activePage === "approval" && isAdmin && (
               <div className="dash-view active">
                 <div className="log-section" style={{ width: "100%" }}>
@@ -818,6 +889,37 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+        
+        {/* ========================================== */}
+        {/* TAMBAHAN: MODAL KONFIRMASI KELUAR */}
+        {/* ========================================== */}
+        {isLogoutModalOpen && (
+          <div className="modal-overlay">
+            <div className="modal-card" style={{ textAlign: "center" }}>
+              
+              {/* ========================================== */}
+              {/* UBAH: Emoji 👋 diganti jadi gambar aset      */}
+              {/* ========================================== */}
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+                <img 
+                  src="/assets/bye.png" /* <--- GANTI 'bye.png' SESUAI NAMA FILE GAMBARMU */
+                  alt="Logout Icon" 
+                  style={{ width: "80px", height: "80px", objectFit: "contain" }} 
+                />
+              </div>
+
+              <h3 className="modal-title">Yakin Ingin Keluar?</h3>
+              <p style={{ color: "var(--clr-gray-500)", marginBottom: "1.5rem", fontSize: "0.95rem", lineHeight: "1.5" }}>
+                Sesi Anda akan diakhiri dan Anda harus login kembali untuk masuk ke sistem.
+              </p>
+              <div className="modal-actions">
+                <button type="button" className="btn-secondary" onClick={() => setIsLogoutModalOpen(false)}>Batal</button>
+                <button type="button" className="btn-primary" style={{ background: "#cb4335" }} onClick={confirmLogout}>Ya, Keluar</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {toastMsg && <div className="toast" style={{ display: "block", opacity: 1 }}>{toastMsg}</div>}
       </div>
     </>

@@ -83,6 +83,7 @@ body {
   position: absolute;
   opacity: 1 !important; /* Diubah menjadi 1 agar 100% jelas dan tidak transparan */
   animation: floatFood 20s ease-in-out infinite;
+  filter: blur(0.5px); /* <--- TAMBAHAN EFEK BLUR DI SINI */
 }
 
 /* Tambahkan ini untuk memastikan gambar img di dalamnya juga tajam */
@@ -1346,7 +1347,7 @@ body {
 }
 
 .btn-secondary:hover {
-  background-color: var(--clr-gray-100);
+  background: var(--clr-gray-100);
 }
 
 .form-field {
@@ -1365,4 +1366,81 @@ body {
   color: var(--clr-navy);
   margin-bottom: 6px;
   margin-left: 4px;
+}
+
+/* ==========================================================================
+   CUSTOM POPUP MODAL (Posisinya fixed di tengah layar)
+   ========================================================================== */
+.custom-popup-overlay {
+  position: fixed;
+  inset: 0;
+  /* Latar belakang gelap transparan dengan efek blur */
+  background: rgba(36, 65, 77, 0.6);
+  backdrop-filter: blur(5px);
+  z-index: 99999; /* Pastikan selalu berada di paling atas */
+  display: flex;
+  justify-content: center; /* Rata tengah horizontal */
+  align-items: center; /* Rata tengah vertikal */
+  padding: 1rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.custom-popup-card {
+  background: var(--clr-white);
+  padding: 2.5rem 2rem;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 380px; /* Lebar maksimal pop-up */
+  text-align: center; /* Teks rata tengah */
+  animation: cardAppear 0.4s ease;
+}
+
+.popup-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+}
+
+.popup-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--clr-navy);
+  margin-bottom: 0.5rem;
+}
+
+.popup-message {
+  font-size: 0.95rem;
+  color: var(--clr-gray-600);
+  margin-bottom: 1.8rem;
+  line-height: 1.5;
+}
+
+.btn-popup {
+  background-color: var(--clr-navy);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition);
+  width: 100%; /* Tombol lebar penuh di dalam card */
+}
+
+.btn-popup:hover {
+  background-color: var(--clr-navy-dark);
+  transform: translateY(-2px);
+}
+
+/* --- Animasi --- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cardAppear {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
