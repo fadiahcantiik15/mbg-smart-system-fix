@@ -81,17 +81,15 @@ body {
 /* ======================================================= */
 .food-flake {
   position: absolute;
-  opacity: 1 !important; /* Diubah menjadi 1 agar 100% jelas dan tidak transparan */
-  animation: floatFood 20s ease-in-out infinite;
-  filter: blur(0.5px); /* <--- TAMBAHAN EFEK BLUR DI SINI */
+  opacity: 1 !important; 
+  /* Baris efek blur SUDAH DIHAPUS dari sini */
 }
 
 /* Tambahkan ini untuk memastikan gambar img di dalamnya juga tajam */
 .food-flake img {
   opacity: 1 !important;
-  filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.15)); /* Bayangan tipis agar gambar terlihat nyata dan tidak kaku */
+  filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.15)); 
 }
-
 .food-flake:nth-child(odd) {
   animation-direction: reverse;
   animation-duration: 25s;

@@ -51,9 +51,7 @@ export default function DashboardPage() {
   const [editForm, setEditForm] = useState({ nama_lengkap: "", lokasi: "", no_hp: "" });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-  // ==========================================
-  // TAMBAHAN: State Konfirmasi Keluar
-  // ==========================================
+  // State Konfirmasi Keluar
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   useEffect(() => {
@@ -154,9 +152,6 @@ export default function DashboardPage() {
     if (activePage === "sampah") fetchTrash();
     if (activePage === "approval") fetchPendingUsers(); 
     
-    // ==========================================
-    // REVERSE GEOCODING DENGAN \n (ENTER)
-    // ==========================================
     if (activePage === "camera") {
       if ("geolocation" in navigator) {
         setKoordinat("Mencari lokasi & alamat...");
@@ -176,9 +171,7 @@ export default function DashboardPage() {
               if (data && data.display_name) {
                 const addressParts = data.display_name.split(", ");
                 const shortAddress = addressParts.slice(0, 4).join(", ");
-                
-                // Gunakan \n untuk memisahkan baris
-                setKoordinat(`${shortAddress}\n(${rawCoords})`);
+                setKoordinat(`${shortAddress}\n${rawCoords}`);
               } else {
                 setKoordinat(rawCoords);
               }
@@ -348,10 +341,7 @@ export default function DashboardPage() {
     let csv = "Waktu,Status,Jenis Makanan,Petugas,Akurasi,Lokasi GPS,Kalori (kkal),Protein (g),Lemak (g),Karbo (g)\n";
     logEntries.forEach((log) => {
       const waktu = new Date(log.created_at).toLocaleString("id-ID").replace(/,/g, " ");
-      
-      // Amankan ekspor Excel dari enter (\n)
       const gps = log.koordinat_lokasi ? `"${log.koordinat_lokasi.replace(/\n/g, ' ')}"` : "-";
-      
       csv += `${waktu},${log.status},${log.jenis_makanan},${log.petugas_nama},${Math.round(log.confidence * 100)}%,${gps},${log.kalori},${log.protein},${log.lemak},${log.karbo}\n`;
     });
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -450,51 +440,211 @@ export default function DashboardPage() {
           </nav>
 
           <div className="sidebar-footer">
-            <button className="btn-logout" onClick={handleLogoutClick}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg> Keluar
-            </button>
-          </div>
-        </aside>
-
-        <main className="main-content" style={{ zIndex: 10, position: "relative" }}>
-          
-          <style>{`
-            @media print {
-              body * { visibility: hidden; }
-              .log-section, .log-section * { visibility: visible; }
-              .log-section { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0;}
-              .sidebar, .top-bar, .hamburger, .btn-primary, .btn-secondary, button { display: none !important; }
-              .dashboard-wrapper, .main-content { background: white; margin: 0; padding: 0; }
-            }
-          `}</style>
-
-          <div className="top-bar">
-            {!isAdmin ? (
-              <div className="step-indicators">
-                <div className="step-item"><div className="step-icon">📷</div><span className="step-label">1. Arahkan Kamera</span></div>
-                <div className="step-item"><div className="step-icon">📸</div><span className="step-label">2. Tekan Ambil Foto</span></div>
-                <div className="step-item"><div className="step-icon">📊</div><span className="step-label">3. Lihat Hasil Gizi</span></div>
-              </div>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "#e8f4f8", padding: "8px 16px", borderRadius: "30px", border: "1px solid #bde0eb" }}>
-                <span style={{ fontSize: "1.2rem" }}>📅</span>
-                <span style={{ color: "var(--clr-navy)", fontWeight: "600", fontSize: "0.9rem" }}>
-                  {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                </span>
-                <span style={{ color: "var(--clr-gray-400)", margin: "0 5px" }}>|</span>
-                <span style={{ color: "var(--clr-teal)", fontWeight: "bold", fontSize: "0.85rem" }}>
-                  🟢 Sistem Aktif
-                </span>
-              </div>
-            )}
-
+            
+            {/* === KOTAK PROFIL === */}
             <div className="profile-badge">
               <div className="profile-avatar">{currentUser.nama_lengkap.charAt(0).toUpperCase()}</div>
               <div className="profile-info">
                 <div className="profile-label">{currentUser.role}:</div>
                 <div className="profile-name">{currentUser.nama_lengkap}</div>
               </div>
-              <span className="profile-status">(online)</span>
+              <span className="profile-status" style={{color: '#2ecc71', fontWeight: 'bold'}}>(online)</span>
+            </div>
+
+            <button className="btn-logout" onClick={handleLogoutClick}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg> Keluar
+            </button>
+          </div>
+        </aside>
+
+        <main className="main-content" style={{ zIndex: 10, position: "relative", background: "transparent" }}>
+          
+          <style>{`
+            .main-content { background: transparent !important; }
+            
+            /* ========================================================= */
+            /* MODIFIED: Top Bar Layout                                  */
+            /* ========================================================= */
+            .top-bar { 
+              background: transparent !important; 
+              border-bottom: none !important; 
+              backdrop-filter: none !important; 
+              padding-top: 1.5rem !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: flex-start !important; 
+              padding-right: 2rem !important;
+            }
+
+            .dashboard-body { background: transparent !important; }
+
+            .quality-card, .profil-card, .modal-card, .log-empty {
+              background: rgba(255, 255, 255, 0.95) !important; 
+              box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+            }
+            
+            /* ========================================================= */
+            /* TABEL BERBACKGROUND FULL & HEADER NAVY                    */
+            /* ========================================================= */
+            .table-container {
+              overflow-x: auto;
+              border-radius: var(--radius-md);
+              background: rgba(255, 255, 255, 0.95) !important; 
+              box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+              min-height: 60vh; 
+              display: block;
+            }
+            
+            .log-table {
+              background: transparent !important; 
+              width: 100%;
+              border-collapse: collapse;
+            }
+
+            .log-table thead {
+              background-color: #153759 !important; 
+              color: #ffffff !important;            
+            }
+
+            .log-table th {
+              padding: 15px !important;
+              font-weight: 700;
+            }
+
+            /* ========================================================= */
+            /* RECONFIGURED: Sidebar & Footer                            */
+            /* ========================================================= */
+            .sidebar {
+              background-color: #153759 !important;
+              display: flex !important;
+              flex-direction: column !important;
+            }
+            .nav-item.active {
+              background-color: rgba(255, 255, 255, 0.15) !important; 
+            }
+
+            .sidebar-footer {
+              display: flex !important;
+              flex-direction: column !important;
+              gap: 0 !important; 
+              padding: 1rem !important;
+              border-top: 1px solid rgba(255,255,255, 0.1) !important;
+              margin-top: auto !important; 
+              width: 100% !important;
+            }
+
+            .profile-badge {
+              display: flex !important;
+              align-items: center !important;
+              gap: 12px !important;
+              background-color: rgba(255, 255, 255, 0.05) !important;
+              border-radius: var(--radius-md) !important;
+              padding: 1rem !important;
+              margin-bottom: 1rem !important; 
+              border: 1px solid rgba(255,255,255, 0.1) !important;
+              width: 100% !important; 
+              box-shadow: none !important;
+              backdrop-filter: none !important;
+              color: #ffffff !important;
+            }
+
+            .profile-info {
+              display: flex;
+              flex-direction: column;
+              flex: 1; 
+            }
+            .profile-info .profile-label { 
+              color: rgba(255, 255, 255, 0.7) !important; 
+              font-size: 0.75rem !important;
+            }
+            .profile-info .profile-name { 
+              color: #ffffff !important; 
+              font-weight: 700 !important;
+              font-size: 0.9rem !important;
+              margin-top: 2px;
+            }
+            
+            .profile-status {
+              font-size: 0.7rem !important;
+              margin-left: auto !important;
+              white-space: nowrap;
+            }
+
+            .profile-avatar {
+              background-color: rgba(255, 255, 255, 0.15) !important;
+              color: #ffffff !important;
+              border: 1px solid rgba(255, 255, 255, 0.3);
+            }
+
+            /* ========================================================= */
+            /* KOTAK PETUNJUK 1-2-3 (DISTRIBUSI MERATA SEPANJANG LAYAR)   */
+            /* ========================================================= */
+            .step-indicators {
+              display: flex !important; 
+              flex-direction: row !important; 
+              justify-content: space-between !important; 
+              width: 100% !important; 
+              padding: 0 2.5rem !important; 
+              box-sizing: border-box !important; 
+            }
+            
+            .step-item {
+              background-color: rgba(21, 55, 89, 0.9) !important; 
+              backdrop-filter: blur(8px) !important; 
+              box-shadow: 0 6px 15px rgba(21, 55, 89, 0.25) !important;
+              border: 1px solid rgba(255,255,255, 0.1) !important;
+              border-radius: var(--radius-sm) !important; 
+              padding: 1rem 1.5rem !important; 
+              flex: 0 1 auto !important; 
+              text-align: center !important; 
+              display: flex !important; 
+              flex-direction: column !important; 
+              align-items: center !important; 
+              gap: 0.5rem !important; 
+            }
+            
+            .step-label {
+              color: #ffffff !important;
+              font-weight: 600 !important; 
+              font-size: 0.9rem !important; 
+            }
+            
+            .step-item .step-icon {
+              background-color: rgba(255, 255, 255, 0.15) !important; 
+              color: #ffffff;
+              display: flex !important; 
+              align-items: center !important;
+              justify-content: center !important;
+              width: 40px !important; 
+              height: 40px !important;
+              border-radius: 50% !important;
+              font-size: 1.5rem !important; 
+            }
+
+            @media print {
+              body * { visibility: hidden; }
+              .log-section, .log-section * { visibility: visible; }
+              .log-section { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0;}
+              .sidebar, .top-bar, .hamburger, .btn-primary, .btn-secondary, button { display: none !important; }
+              .dashboard-wrapper, .main-content { background: white !important; margin: 0; padding: 0; }
+            }
+          `}</style>
+
+          <div className="top-bar">
+            <div style={{ flex: 1 }}>
+              {activePage === "home" && !isAdmin ? (
+                <div className="step-indicators">
+                  <div className="step-item"><div className="step-icon">📷</div><span className="step-label">1. Arahkan Kamera</span></div>
+                  <div className="step-item"><div className="step-icon">📸</div><span className="step-label">2. Tekan Ambil Foto</span></div>
+                  <div className="step-item"><div className="step-icon">📊</div><span className="step-label">3. Lihat Hasil Gizi</span></div>
+                </div>
+              ) : !["camera", "log", "sampah"].includes(activePage) ? (
+                <h2 style={{ fontSize: "1.25rem", color: "var(--clr-navy)", fontWeight: "700", marginLeft: "10px" }}>
+                  {activePage === 'profil' ? '👤 Profil Saya' : 
+                   activePage === 'approval' ? '🛡️ Verifikasi Petugas' : 
+                   isAdmin ? '🏠 Dashboard Admin' : '🏠 Dashboard Utama'}
+                </h2>
+              ) : null}
             </div>
           </div>
 
@@ -509,23 +659,22 @@ export default function DashboardPage() {
                     </p>
 
                     <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap", marginBottom: "3rem" }}>
-                      <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px", borderBottom: "4px solid var(--clr-teal)" }}>
+                      <div className="profil-card" style={{ padding: "1.5rem", borderRadius: "var(--radius-md)", minWidth: "160px", borderBottom: "4px solid var(--clr-teal)" }}>
                         <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--clr-gray-500)" }}>Total Pemeriksaan</div>
                         <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "var(--clr-navy)", margin: "10px 0" }}>{stats.total}</div>
                         <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)" }}>Laporan masuk</div>
                       </div>
-                      <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px", borderBottom: "4px solid #2ecc71" }}>
+                      <div className="profil-card" style={{ padding: "1.5rem", borderRadius: "var(--radius-md)", minWidth: "160px", borderBottom: "4px solid #2ecc71" }}>
                         <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--clr-gray-500)" }}>Kualitas SEGAR 🟢</div>
                         <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#2ecc71", margin: "10px 0" }}>{stats.segar}</div>
                         <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)" }}>Layak konsumsi</div>
                       </div>
-                      <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px", borderBottom: "4px solid #e74c3c" }}>
+                      <div className="profil-card" style={{ padding: "1.5rem", borderRadius: "var(--radius-md)", minWidth: "160px", borderBottom: "4px solid #e74c3c" }}>
                         <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--clr-gray-500)" }}>Kualitas BASI 🔴</div>
                         <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#e74c3c", margin: "10px 0" }}>{stats.basi}</div>
                         <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)" }}>Tidak layak</div>
                       </div>
                     </div>
-
                   </div>
                 ) : (
                   <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
@@ -535,17 +684,17 @@ export default function DashboardPage() {
                     </p>
 
                     <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-                      <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px" }}>
+                      <div className="profil-card" style={{ padding: "1.5rem", minWidth: "160px" }}>
                         <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>📷</div>
                         <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>Deteksi Kualitas</div>
                         <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)", marginTop: "4px" }}>AI-powered analysis</div>
                       </div>
-                      <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px" }}>
+                      <div className="profil-card" style={{ padding: "1.5rem", minWidth: "160px" }}>
                         <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>📊</div>
                         <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>Info Nutrisi</div>
                         <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)", marginTop: "4px" }}>Kalori, protein, dll</div>
                       </div>
-                      <div style={{ background: "var(--clr-white)", padding: "1.5rem", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-card)", minWidth: "160px" }}>
+                      <div className="profil-card" style={{ padding: "1.5rem", minWidth: "160px" }}>
                         <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>📋</div>
                         <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>Log Riwayat</div>
                         <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)", marginTop: "4px" }}>Rekam & pantau</div>
@@ -553,16 +702,16 @@ export default function DashboardPage() {
                     </div>
 
                     <div style={{ width: "100%", maxWidth: "800px", padding: "1rem", margin: "3rem auto 0", textAlign: "left" }}>
-                      <div style={{ background: "#e8f4f8", borderLeft: "4px solid var(--clr-teal)", padding: "1rem 1.5rem", borderRadius: "var(--radius-sm)", marginBottom: "1.5rem" }}>
+                      <div style={{ background: "rgba(232, 244, 248, 0.9)", borderLeft: "4px solid var(--clr-teal)", padding: "1rem 1.5rem", borderRadius: "var(--radius-sm)", marginBottom: "1.5rem" }}>
                         <h3 style={{ fontSize: "1rem", color: "var(--clr-navy)", marginBottom: "6px" }}>📚 Sumber Referensi Gizi Valid</h3>
                         <p style={{ fontSize: "0.85rem", color: "var(--clr-navy-dark)", lineHeight: "1.5", margin: 0 }}>
-                          Seluruh kalkulasi gizi pada MBG Smart System menggunakan standar perhitungan mutlak berdasarkan <strong>Tabel Komposisi Pangan Indonesia (TKPI)</strong> yang diterbitkan resmi oleh <strong>Kementerian Kesehatan Republik Indonesia</strong>. Data dihitung per 100 gram BDD (Berat Dapat Dimakan).
+                          Seluruh kalkulasi gizi pada MBG Smart System menggunakan standar perhitungan mutlak berdasarkan <strong>Tabel Komposisi Pangan Indonesia (TKPI)</strong> yang diterbitkan resmi oleh <strong>Kementerian Kesehatan Republik Indonesia</strong>.
                         </p>
                       </div>
 
                       <h3 style={{ fontSize: "1.2rem", color: "var(--clr-navy)", marginBottom: "1rem" }}>Daftar Kandungan Gizi (Menu Basis Data AI)</h3>
-                      <div style={{ overflowX: "auto", boxShadow: "var(--shadow-card)", borderRadius: "var(--radius-md)" }}>
-                        <table className="log-table" style={{ width: "100%", minWidth: "600px", textAlign: "left" }}>
+                      <div className="table-container">
+                        <table className="log-table">
                           <thead>
                             <tr><th>Jenis Makanan</th><th>Kalori (kkal)</th><th>Protein (g)</th><th>Lemak (g)</th><th>Karbo (g)</th><th>BDD (%)</th></tr>
                           </thead>
@@ -581,8 +730,30 @@ export default function DashboardPage() {
 
             {activePage === "camera" && !isAdmin && (
               <div className="dash-view active">
+                
+                {/* KOTAK JUDUL KAMERA */}
+                <div style={{ 
+                  backgroundColor: "#153759", 
+                  color: "white", 
+                  padding: "10px 24px", 
+                  borderRadius: "30px", 
+                  fontWeight: "700", 
+                  fontSize: "1.05rem", 
+                  marginBottom: "8px", 
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  boxShadow: "0 6px 15px rgba(21, 55, 89, 0.25)"
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
+                  Kamera Deteksi
+                </div>
+
                 {cameraMode === "input" && (
                   <div className="camera-section">
+                    
+                    <p className="camera-hint" style={{ marginBottom: "15px", color: "var(--clr-navy)", fontWeight: "600" }}>Arahkan kamera ke makanan</p>
+
                     <div className="camera-viewport">
                       <video ref={videoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }}></video>
                       {!cameraStream && (
@@ -593,17 +764,16 @@ export default function DashboardPage() {
                         </div>
                       )}
                     </div>
-                    <p className="camera-hint">Arahkan kamera ke makanan</p>
 
-                    {/* Tampilan Alamat Real-time di layar kamera */}
+                    {/* KOTAK LOKASI INPUT KAMERA (DIBUAT NAVY) */}
                     <div style={{ 
                       marginTop: "12px", 
                       fontSize: "0.85rem", 
-                      color: "var(--clr-navy)", 
-                      background: "white", 
+                      color: "white", 
+                      background: "#153759", 
                       padding: "8px 16px", 
                       borderRadius: "12px",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                      boxShadow: "0 6px 15px rgba(21, 55, 89, 0.25)",
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
@@ -616,7 +786,7 @@ export default function DashboardPage() {
                         <span>{koordinat.split('\n')[0]}</span> 
                       </div>
                       {koordinat.includes('\n') && (
-                        <div style={{ fontSize: "0.75rem", color: "var(--clr-gray-500)", fontFamily: "monospace" }}>
+                        <div style={{ fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.7)", fontFamily: "monospace" }}>
                           {koordinat.split('\n')[1]}
                         </div>
                       )}
@@ -655,27 +825,29 @@ export default function DashboardPage() {
                           <div style={{ fontSize: "1.05rem", fontWeight: "bold", color: "var(--clr-navy)", marginBottom: "4px" }}>{detectionResult.jenis_makanan}</div>
                           <div className="confidence-text">Kepercayaan: {Math.round(detectionResult.confidence * 100)}%</div>
                           
+                          {/* KOTAK LOKASI HASIL GIZI (DIBUAT NAVY) */}
                           <div style={{ 
                             fontSize: "0.85rem", 
-                            color: "var(--clr-navy)", 
+                            color: "white", 
                             marginTop: "12px", 
                             display: "flex", 
                             flexDirection: "column", 
                             justifyContent: "center", 
                             alignItems: "center", 
                             gap: "4px", 
-                            background: "#f8f9fa", 
+                            background: "#153759", 
                             padding: "10px 16px", 
                             borderRadius: "12px", 
                             width: "100%",
-                            textAlign: "center"
+                            textAlign: "center",
+                            boxShadow: "0 6px 15px rgba(21, 55, 89, 0.25)"
                           }}>
                             <div style={{ fontWeight: "600", display: "flex", alignItems: "center", gap: "6px" }}>
                               <span style={{ color: "#e74c3c", fontSize: "1.1rem" }}>📍</span> 
                               <span>{koordinat.split('\n')[0]}</span>
                             </div>
                             {koordinat.includes('\n') && (
-                              <div style={{ fontSize: "0.75rem", color: "var(--clr-gray-500)", fontFamily: "monospace" }}>
+                              <div style={{ fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.7)", fontFamily: "monospace" }}>
                                 {koordinat.split('\n')[1]}
                               </div>
                             )}
@@ -700,62 +872,31 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {/* Approval views continue below */}
             {activePage === "approval" && isAdmin && (
               <div className="dash-view active">
                 <div className="log-section" style={{ width: "100%" }}>
-                  <div style={{ marginBottom: "1.5rem" }}>
-                    <h2 style={{ margin: 0, color: "var(--clr-navy)", fontSize: "1.5rem" }}>🛡️ Verifikasi Petugas Baru</h2>
-                    <p style={{ fontSize: "0.85rem", color: "var(--clr-gray-500)", marginTop: "4px" }}>
-                      Daftar petugas yang menunggu persetujuan Anda untuk bisa login.
-                    </p>
-                  </div>
-                  
-                  {isLoadingPending ? (
-                    <p style={{ textAlign: "center", color: "var(--clr-gray-500)", padding: "2rem 0" }}>Memuat antrean pendaftar...</p>
-                  ) : pendingUsers.length === 0 ? (
-                    <div className="log-empty">
-                      <span style={{ fontSize: "2.5rem", display: "block", marginBottom: "10px" }}>🎉</span>
-                      Tidak ada antrean petugas baru saat ini.
-                    </div>
-                  ) : (
-                    <div style={{ overflowX: "auto", boxShadow: "var(--shadow-card)", borderRadius: "var(--radius-md)" }}>
-                      <table className="log-table" style={{ width: "100%", minWidth: "700px" }}>
+                   <div className="table-container">
+                      <table className="log-table">
                         <thead>
                           <tr>
-                            <th>Nama Lengkap</th>
-                            <th>Username</th>
-                            <th>No. Telp</th>
-                            <th>Lokasi Tugas</th>
-                            <th style={{ textAlign: "center" }}>Aksi</th>
+                            <th>Nama Lengkap</th><th>Username</th><th>No. Telp</th><th>Lokasi Tugas</th><th style={{ textAlign: "center" }}>Aksi</th>
                           </tr>
                         </thead>
                         <tbody>
                           {pendingUsers.map((user) => (
                             <tr key={user.id}>
                               <td style={{ fontWeight: "700", color: "var(--clr-navy)" }}>{user.nama_lengkap}</td>
-                              <td>{user.username}</td>
-                              <td>{user.no_hp}</td>
-                              <td>{user.lokasi}</td>
+                              <td>{user.username}</td><td>{user.no_hp}</td><td>{user.lokasi}</td>
                               <td style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
-                                <button 
-                                  onClick={() => handleUpdateStatusPetugas(user.id, "approved", user.nama_lengkap)}
-                                  style={{ background: "var(--clr-fresh)", color: "white", padding: "8px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "700" }}
-                                >
-                                  Setujui
-                                </button>
-                                <button 
-                                  onClick={() => handleUpdateStatusPetugas(user.id, "ditolak", user.nama_lengkap)}
-                                  style={{ background: "var(--clr-spoiled)", color: "white", padding: "8px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "700" }}
-                                >
-                                  Tolak
-                                </button>
+                                <button onClick={() => handleUpdateStatusPetugas(user.id, "approved", user.nama_lengkap)} style={{ background: "var(--clr-fresh)", color: "white", padding: "8px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "700" }}>Setujui</button>
+                                <button onClick={() => handleUpdateStatusPetugas(user.id, "ditolak", user.nama_lengkap)} style={{ background: "var(--clr-spoiled)", color: "white", padding: "8px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "700" }}>Tolak</button>
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
-                  )}
                 </div>
               </div>
             )}
@@ -763,45 +904,50 @@ export default function DashboardPage() {
             {activePage === "log" && (
               <div className="dash-view active">
                 <div className="log-section">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "10px" }}>
-                    <h2 style={{ margin: 0 }}>📋 Laporan Deteksi Gizi</h2>
+                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "10px" }}>
+                    
+                    {/* KOTAK JUDUL LOG RIWAYAT BARU */}
+                    <div style={{ 
+                      backgroundColor: "#153759", 
+                      color: "white", 
+                      padding: "10px 24px", 
+                      borderRadius: "30px", 
+                      fontWeight: "700", 
+                      fontSize: "1.05rem", 
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      boxShadow: "0 6px 15px rgba(21, 55, 89, 0.25)"
+                    }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+                      Laporan Deteksi Gizi
+                    </div>
+
                     {logEntries.length > 0 && (
                       <div style={{ display: "flex", gap: "10px" }}>
-                        <button onClick={handleExportExcel} style={{ background: "#217346", color: "white", border: "none", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>📊 Excel (CSV)</button>
-                        <button onClick={handleExportPDF} style={{ background: "#cb4335", color: "white", border: "none", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>📄 Cetak PDF</button>
+                        <button onClick={handleExportExcel} style={{ background: "#217346", color: "white", border: "none", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>📊 Excel</button>
+                        <button onClick={handleExportPDF} style={{ background: "#cb4335", color: "white", border: "none", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>📄 PDF</button>
                       </div>
                     )}
                   </div>
-
-                  {logEntries.length === 0 ? (
-                    <p style={{ color: "var(--clr-gray-500)", textAlign: "center", padding: "2rem 0" }}>Belum ada riwayat deteksi.</p>
-                  ) : (
-                    <div style={{ overflowX: "auto", boxShadow: "var(--shadow-card)", borderRadius: "var(--radius-md)" }}>
-                      <table className="log-table" style={{ width: "100%", minWidth: "700px" }}>
-                        <thead>
-                          <tr>
-                            <th>Waktu</th><th>Status</th><th>Makanan</th><th>Petugas</th><th>Akurasi</th><th style={{ textAlign: "center" }}>Aksi</th>
+                  <div className="table-container">
+                    <table className="log-table">
+                      <thead>
+                        <tr><th>Waktu</th><th>Status</th><th>Makanan</th><th>Petugas</th><th>Akurasi</th><th style={{ textAlign: "center" }}>Aksi</th></tr>
+                      </thead>
+                      <tbody>
+                        {logEntries.map((log, i) => (
+                          <tr key={i}>
+                            <td style={{ fontSize: "0.8rem" }}>{new Date(log.created_at).toLocaleString("id-ID")}</td>
+                            <td><span className={`badge ${log.status === "SEGAR" ? "badge-fresh" : "badge-spoiled"}`}>{log.status}</span></td>
+                            <td style={{ fontWeight: "600" }}>{log.jenis_makanan}</td>
+                            <td>{log.petugas_nama}</td><td>{Math.round(log.confidence * 100)}%</td>
+                            <td style={{ textAlign: "center" }}><button onClick={() => handleSoftDelete(log.id)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "1.2rem" }}>🗑️</button></td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {logEntries.map((log, i) => (
-                            <tr key={i}>
-                              <td style={{ fontSize: "0.8rem" }}>{new Date(log.created_at).toLocaleString("id-ID")}</td>
-                              <td><span className={`badge ${log.status === "SEGAR" ? "badge-fresh" : "badge-spoiled"}`}>{log.status}</span></td>
-                              <td style={{ fontWeight: "600" }}>{log.jenis_makanan}</td>
-                              <td>{log.petugas_nama}</td>
-                              <td>{Math.round(log.confidence * 100)}%</td>
-                              <td style={{ textAlign: "center" }}>
-                                <button onClick={() => handleSoftDelete(log.id)} title="Pindah ke Sampah" style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "1.2rem", opacity: "0.7", transition: "0.3s" }} onMouseOver={(e) => e.currentTarget.style.opacity = "1"} onMouseOut={(e) => e.currentTarget.style.opacity = "0.7"}>
-                                  🗑️
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
@@ -809,46 +955,57 @@ export default function DashboardPage() {
             {activePage === "sampah" && (
               <div className="dash-view active">
                 <div className="log-section">
-                  <div style={{ marginBottom: "1.5rem" }}>
-                    <h2 style={{ margin: 0, color: "#cb4335" }}>🗑️ Tempat Sampah</h2>
-                    <p style={{ fontSize: "0.85rem", color: "var(--clr-gray-500)", marginTop: "4px" }}>Item akan dihapus permanen secara otomatis setelah 7 hari.</p>
+                  {/* DIUBAH: Penambahan centering di container judul agar sejalan dengan Kamera Deteksi */}
+                  <div style={{ 
+                    marginBottom: "1.5rem",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    textAlign: "center"
+                  }}>
+                    
+                    {/* KOTAK JUDUL TEMPAT SAMPAH BARU */}
+                    <div style={{ 
+                      backgroundColor: "#153759", 
+                      color: "white", 
+                      padding: "10px 24px", 
+                      borderRadius: "30px", 
+                      fontWeight: "700", 
+                      fontSize: "1.05rem", 
+                      marginBottom: "10px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      boxShadow: "0 6px 15px rgba(21, 55, 89, 0.25)"
+                    }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                      Tempat Sampah
+                    </div>
+
+                    {/* DIUBAH: Warna teks diubah ke Navy (#153759) untuk konsistensi, dan dihapus margin-top agar mepet judul */}
+                    <p style={{ fontSize: "0.85rem", color: "#153759", margin: "0" }}>Item akan dihapus permanen secara otomatis setelah 7 hari.</p>
                   </div>
 
-                  {trashEntries.length === 0 ? (
-                    <p style={{ color: "var(--clr-gray-500)", textAlign: "center", padding: "2rem 0" }}>Tidak ada data di tempat sampah.</p>
-                  ) : (
-                    <div style={{ overflowX: "auto", boxShadow: "var(--shadow-card)", borderRadius: "var(--radius-md)" }}>
-                      <table className="log-table" style={{ width: "100%", minWidth: "800px" }}>
-                        <thead>
-                          <tr><th>Dihapus Pada</th><th>Status / Makanan</th><th>Petugas</th><th>Waktu Tersisa</th><th style={{ textAlign: "center" }}>Tindakan</th></tr>
-                        </thead>
-                        <tbody>
-                          {trashEntries.map((log, i) => {
-                            const deleteDate = new Date(log.deleted_at).getTime();
-                            const now = new Date().getTime();
-                            const diffDays = Math.floor((now - deleteDate) / (1000 * 3600 * 24));
-                            const daysLeft = 7 - diffDays;
-
-                            return (
-                              <tr key={i}>
-                                <td style={{ fontSize: "0.8rem", color: "#cb4335" }}>{new Date(log.deleted_at).toLocaleString("id-ID")}</td>
-                                <td>
-                                  <span className={`badge ${log.status === "SEGAR" ? "badge-fresh" : "badge-spoiled"}`} style={{marginRight: '8px'}}>{log.status}</span>
-                                  <strong>{log.jenis_makanan}</strong>
-                                </td>
-                                <td>{log.petugas_nama}</td>
-                                <td style={{ fontWeight: "bold", color: daysLeft <= 2 ? "#cb4335" : "var(--clr-gray-500)" }}>{daysLeft} Hari Lagi</td>
-                                <td style={{ textAlign: "center", display: "flex", gap: "8px", justifyContent: "center" }}>
-                                  <button onClick={() => handleRestore(log.id)} style={{ background: "#2ecc71", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem", fontWeight: "bold" }}>♻️ Pulihkan</button>
-                                  <button onClick={() => handleHardDelete(log.id)} style={{ background: "#e74c3c", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem", fontWeight: "bold" }}>Hapus Permanen</button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                  <div className="table-container">
+                    <table className="log-table">
+                      <thead>
+                        <tr><th>Dihapus Pada</th><th>Status / Makanan</th><th>Petugas</th><th>Tersisa</th><th style={{ textAlign: "center" }}>Tindakan</th></tr>
+                      </thead>
+                      <tbody>
+                        {trashEntries.map((log, i) => (
+                          <tr key={i}>
+                            <td style={{ fontSize: "0.8rem", color: "#cb4335" }}>{new Date(log.deleted_at).toLocaleString("id-ID")}</td>
+                            <td><span className={`badge ${log.status === "SEGAR" ? "badge-fresh" : "badge-spoiled"}`}>{log.status}</span> <strong>{log.jenis_makanan}</strong></td>
+                            <td>{log.petugas_nama}</td><td>{7 - Math.floor((new Date().getTime() - new Date(log.deleted_at).getTime()) / (1000 * 3600 * 24))} Hari</td>
+                            <td style={{ textAlign: "center" }}>
+                                <button onClick={() => handleRestore(log.id)} style={{ background: "#2ecc71", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold", marginRight: "5px" }}>♻️ Pulihkan</button>
+                                <button onClick={() => handleHardDelete(log.id)} style={{ background: "#e74c3c", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>Hapus</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
@@ -890,28 +1047,14 @@ export default function DashboardPage() {
           </div>
         )}
         
-        {/* ========================================== */}
-        {/* TAMBAHAN: MODAL KONFIRMASI KELUAR */}
-        {/* ========================================== */}
         {isLogoutModalOpen && (
           <div className="modal-overlay">
             <div className="modal-card" style={{ textAlign: "center" }}>
-              
-              {/* ========================================== */}
-              {/* UBAH: Emoji 👋 diganti jadi gambar aset      */}
-              {/* ========================================== */}
               <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
-                <img 
-                  src="/assets/bye.png" /* <--- GANTI 'bye.png' SESUAI NAMA FILE GAMBARMU */
-                  alt="Logout Icon" 
-                  style={{ width: "80px", height: "80px", objectFit: "contain" }} 
-                />
+                <img src="/assets/bye.png" alt="Logout Icon" style={{ width: "80px", height: "80px", objectFit: "contain" }} />
               </div>
-
               <h3 className="modal-title">Yakin Ingin Keluar?</h3>
-              <p style={{ color: "var(--clr-gray-500)", marginBottom: "1.5rem", fontSize: "0.95rem", lineHeight: "1.5" }}>
-                Sesi Anda akan diakhiri dan Anda harus login kembali untuk masuk ke sistem.
-              </p>
+              <p style={{ color: "var(--clr-gray-500)", marginBottom: "1.5rem", fontSize: "0.95rem", lineHeight: "1.5" }}>Sesi Anda akan diakhiri dan Anda harus login kembali.</p>
               <div className="modal-actions">
                 <button type="button" className="btn-secondary" onClick={() => setIsLogoutModalOpen(false)}>Batal</button>
                 <button type="button" className="btn-primary" style={{ background: "#cb4335" }} onClick={confirmLogout}>Ya, Keluar</button>

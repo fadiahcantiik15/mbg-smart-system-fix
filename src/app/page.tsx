@@ -296,15 +296,15 @@ export default function LoginPage() {
         <div className="food-flake" style={{ top: "50%", left: "25%", width: "130px" }}><img src="/assets/ikan.png" alt="Ikan" style={{ width: "100%", height: "auto" }} /></div>
         <div className="food-flake" style={{ top: "70%", left: "10%", width: "100px" }}><img src="/assets/Nasi.png" alt="Nasi" style={{ width: "100%", height: "auto" }} /></div>
         <div className="food-flake" style={{ top: "85%", left: "20%", width: "100px" }}><img src="/assets/telur.png" alt="Telur" style={{ width: "100%", height: "auto" }} /></div>
-        <div className="food-flake" style={{ top: "10%", left: "31%", width: "130px" }}><img src="/assets/ayam.png" alt="Ayam" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "5%", left: "30%", width: "130px" }}><img src="/assets/ayam.png" alt="Ayam" style={{ width: "100%", height: "auto" }} /></div>
         <div className="food-flake" style={{ top: "3%", left: "50%", width: "100px" }}><img src="/assets/brokoli.png" alt="Brokoli" style={{ width: "100%", height: "auto" }} /></div>
         <div className="food-flake" style={{ top: "85%", left: "40%", width: "120px" }}><img src="/assets/wortel.png" alt="Wortel" style={{ width: "100%", height: "auto" }} /></div>
-        <div className="food-flake" style={{ top: "78%", left: "60%", width: "100px" }}><img src="/assets/pisang.png" alt="Pisang" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "80%", left: "60%", width: "100px" }}><img src="/assets/pisang.png" alt="Pisang" style={{ width: "100%", height: "auto" }} /></div>
         <div className="food-flake" style={{ top: "7%", right: "7%", width: "100px" }}><img src="/assets/Nasi.png" alt="Nasi" style={{ width: "100%", height: "auto" }} /></div>
         <div className="food-flake" style={{ top: "40%", right: "3%", width: "100px" }}><img src="/assets/pisang.png" alt="Pisang" style={{ width: "100%", height: "auto" }} /></div>
         <div className="food-flake" style={{ top: "15%", right: "25%", width: "100px" }}><img src="/assets/telur.png" alt="Telur" style={{ width: "100%", height: "auto" }} /></div>
         <div className="food-flake" style={{ top: "30%", right: "15%", width: "90px" }}><img src="/assets/tempe.png" alt="Tempe" style={{ width: "100%", height: "auto" }} /></div>
-        <div className="food-flake" style={{ top: "45%", right: "20%", width: "130px" }}><img src="/assets/ayam.png" alt="Ayam" style={{ width: "100%", height: "auto" }} /></div>
+        <div className="food-flake" style={{ top: "50%", right: "20%", width: "130px" }}><img src="/assets/ayam.png" alt="Ayam" style={{ width: "100%", height: "auto" }} /></div>
         <div className="food-flake" style={{ top: "70%", right: "7%", width: "90px" }}><img src="/assets/apel.png" alt="Apel" style={{ width: "100%", height: "auto" }} /></div>
         <div className="food-flake" style={{ top: "80%", right: "20%", width: "90px" }}><img src="/assets/tahu.png" alt="Tahu" style={{ width: "100%", height: "auto" }} /></div>
       </div>
@@ -431,7 +431,10 @@ export default function LoginPage() {
 
               {resetStep === 1 && (
                 <form onSubmit={handleResetRequest}>
-                  <p className="auth-subtitle">Masukkan nomor telepon terdaftar (Awali dengan 62).</p>
+                  <p className="auth-subtitle" style={{ lineHeight: "1.6" }}>
+                    Masukkan nomor telepon terdaftar <br />
+                    (Awali dengan 62).
+                  </p>
                   
                   <div className="input-group" style={{ marginBottom: resetPhone.startsWith("0") ? "4px" : "14px" }}>
                     <span className="input-icon">📱</span>
