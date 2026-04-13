@@ -9,7 +9,7 @@ import emailjs from "@emailjs/browser";
 export default function LoginPage() {
   const router = useRouter();
 
-  const FONNTE_TOKEN = "Jio7p1wbK3hMVV5db8xe"; 
+  const FONNTE_TOKEN = "4RfHCsUiw93xYJCoYVrz"; 
   const EMAILJS_SERVICE_ID = "service_4g8z0w9";
   const EMAILJS_TEMPLATE_ID = "template_saj3aar";
   const EMAILJS_PUBLIC_KEY = "iH9Qe-hTBurk2KwH3";
@@ -31,7 +31,6 @@ export default function LoginPage() {
     isOpen: false,
     title: "",
     message: "",
-    icon: "✅",
     actionType: "none" // "none" atau "reload"
   });
 
@@ -41,6 +40,7 @@ export default function LoginPage() {
   const [noHp, setNoHp] = useState("");
   const [lokasi, setLokasi] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
+  const [email, setEmail] = useState("");
   
   // DITAMBAHKAN: State untuk Jenis Kelamin
   const [jenisKelamin, setJenisKelamin] = useState("");
@@ -61,6 +61,7 @@ export default function LoginPage() {
     setConfirmPass("");
     setNamaLengkap("");
     setNoHp("");
+    setEmail(""); // DITAMBAHKAN: Reset Email
     setLokasi("");
     setJenisKelamin(""); // DITAMBAHKAN: Reset Jenis Kelamin
     setResetPhone("");
@@ -85,25 +86,38 @@ export default function LoginPage() {
   };
 
   // ==========================================
-  // KOMPONEN TOMBOL MATA (Toggle Password) PAKE SVG
+  // KOMPONEN TOMBOL MATA (100% ASET CUSTOM)
   // ==========================================
   const PasswordToggle = ({ isVisible, setIsVisible }: { isVisible: boolean, setIsVisible: (val: boolean) => void }) => (
     <button
       type="button"
       className="password-toggle-btn"
       onClick={() => setIsVisible(!isVisible)}
+      style={{
+        background: "none",
+        border: "none",
+        padding: "0 8px",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}
       title={isVisible ? "Sembunyikan Sandi" : "Tampilkan Sandi"}
     >
       {isVisible ? (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-          <circle cx="12" cy="12" r="3"></circle>
-        </svg>
+        /* JIKA PASSWORD TERLIHAT (MATA TERBUKA) */
+        <img 
+          src="/assets/icon-mata-terbuka.png" /* <--- GANTI NAMA FILE INI */
+          alt="Show Password" 
+          style={{ width: "30px", height: "30px", objectFit: "contain" }} 
+        />
       ) : (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-          <line x1="1" y1="1" x2="23" y2="23"></line>
-        </svg>
+        /* JIKA PASSWORD SEMBUNYI (MATA TERTUTUP) */
+        <img 
+          src="/assets/icon-mata-tertutup.png" /* <--- GANTI NAMA FILE INI */
+          alt="Hide Password" 
+          style={{ width: "30px", height: "30px", objectFit: "contain" }} 
+        />
       )}
     </button>
   );
@@ -277,7 +291,8 @@ export default function LoginPage() {
       const { error } = await supabase.from("users").insert([{
         username: username.toLowerCase(), 
         password: hashedPassword, 
-        nama_lengkap: namaLengkap, 
+        nama_lengkap: namaLengkap,
+        email: email, // <-- DITAMBAHKAN KE DATABASE
         no_hp: noHp, 
         lokasi: lokasi, 
         jenis_kelamin: jenisKelamin, // DITAMBAHKAN: Insert jenis kelamin
@@ -367,7 +382,7 @@ export default function LoginPage() {
               <div className="auth-footer" style={{ marginTop: "2rem", borderTop: "1px solid var(--clr-gray-200)", paddingTop: "1.5rem" }}>
                 <p style={{ marginBottom: "12px", color: "var(--clr-gray-500)" }}>Untuk akses baru, hubungi administrator sistem.</p>
                 <a 
-                  href="https://wa.me/6281344188607?text=Halo%20Admin%2C%20saya%20petugas%20baru%20MBG.%20Saya%20sudah%20mendaftar%20akun%20dan%20ingin%20meminta%20persetujuan%20akses%20login." 
+                  href="https://wa.me/6285121515075?text=Halo%20Admin%2C%20saya%20petugas%20baru%20MBG.%20Saya%20sudah%20mendaftar%20akun%20dan%20ingin%20meminta%20persetujuan%20akses%20login." 
                   target="_blank" 
                   rel="noopener noreferrer"
                   style={{
@@ -431,9 +446,31 @@ export default function LoginPage() {
                 <div className="input-group"><input type="text" placeholder="Nama Lengkap" required value={namaLengkap} onChange={(e) => setNamaLengkap(e.target.value)} /></div>
                 <div className="input-group"><input type="text" placeholder="Username" required value={username} onChange={(e) => setUsername(e.target.value)} /></div>
                 
+                {/* --- TAMBAHAN: KOLOM EMAIL --- */}
+                <div className="input-group">
+                  <input 
+                    type="email" 
+                    placeholder="Alamat Email aktif" 
+                    required 
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)} 
+                  />
+                </div>
+
+                {/* --- TAMBAHAN: KOLOM NOMOR HP --- */}
+                <div className="input-group" style={{ marginBottom: noHp.startsWith("0") ? "4px" : "16px" }}>
+                  <input 
+                    type="tel" 
+                    placeholder="Nomor WhatsApp (Misal: 62812...)" 
+                    required 
+                    value={noHp} 
+                    onChange={(e) => setNoHp(e.target.value.replace(/\D/g, ""))} 
+                  />
+                </div>
+                
                 {noHp.startsWith("0") && (
                   <p style={{ fontSize: "0.75rem", color: "var(--clr-spoiled)", marginTop: "-6px", marginBottom: "12px", marginLeft: "4px", fontWeight: "bold" }}>
-                    ⚠️ Harap gunakan 62 di awal, bukan 0.
+                    Harap gunakan 62 di awal, bukan 0.
                   </p>
                 )}
 
@@ -483,22 +520,65 @@ export default function LoginPage() {
                   </p>
                   
                   <div className="input-group" style={{ marginBottom: resetPhone.startsWith("0") ? "4px" : "14px" }}>
-                    <span className="input-icon">📱</span>
-                    <input type="tel" placeholder="Contoh: 628123456789" required value={resetPhone} onChange={(e) => setResetPhone(e.target.value.replace(/\D/g, ""))} />
+                    {/* Span icon dihapus agar tidak memakan tempat */}
+                    <input 
+                      type="tel" 
+                      placeholder="Contoh: 628123456789" 
+                      required 
+                      value={resetPhone} 
+                      onChange={(e) => setResetPhone(e.target.value.replace(/\D/g, ""))} 
+                      style={{ paddingLeft: "1rem", textAlign: "left" }} /* Memaksa teks mentok kiri */
+                    />
                   </div>
-                  {resetPhone.startsWith("0") && (
-                    <p style={{ fontSize: "0.75rem", color: "var(--clr-spoiled)", marginTop: "-6px", marginBottom: "16px", marginLeft: "4px", fontWeight: "bold", textAlign: "left" }}>
-                      ⚠️ Harap gunakan 62 di awal, bukan 0.
-                    </p>
-                  )}
 
-                  <p className="method-label">Pilih Metode:</p>
-                  <div className="method-toggle">
-                    <button type="button" className={`method-btn ${resetMethod === "whatsapp" ? "active" : ""}`} onClick={() => setResetMethod("whatsapp")}>
-                      <span className="method-icon">📞</span> WhatsApp
+                  {/* --- AREA TOMBOL PILIH METODE --- */}
+                  <p className="method-label" style={{ marginBottom: "10px", textAlign: "center", fontWeight: "bold", color: "var(--clr-navy)" }}>Pilih Metode:</p>
+                  
+                  <div className="method-toggle" style={{ 
+                    display: "flex", 
+                    gap: "10px", 
+                    marginBottom: "1.5rem" 
+                  }}>
+                    {/* --- TOMBOL WHATSAPP --- */}
+                    <button 
+                      type="button" 
+                      className={`method-btn ${resetMethod === "whatsapp" ? "active" : ""}`} 
+                      onClick={() => setResetMethod("whatsapp")}
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "8px"
+                      }}
+                    >
+                      <img 
+                        src="/assets/icon-telepon.png" /* <--- GANTI NAMA FILE INI */
+                        alt="WhatsApp Icon" 
+                        style={{ width: "30px", height: "30px", objectFit: "contain" }} 
+                      />
+                      WhatsApp
                     </button>
-                    <button type="button" className={`method-btn ${resetMethod === "email" ? "active" : ""}`} onClick={() => setResetMethod("email")}>
-                      <span className="method-icon">📧</span> Email
+
+                    {/* --- TOMBOL EMAIL --- */}
+                    <button 
+                      type="button" 
+                      className={`method-btn ${resetMethod === "email" ? "active" : ""}`} 
+                      onClick={() => setResetMethod("email")}
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "8px"
+                      }}
+                    >
+                      <img 
+                        src="/assets/icon-email.png" /* <--- GANTI NAMA FILE INI */
+                        alt="Email Icon" 
+                        style={{ width: "30px", height: "30px", objectFit: "contain" }} 
+                      />
+                      Email
                     </button>
                   </div>
 
@@ -530,7 +610,7 @@ export default function LoginPage() {
                 <form onSubmit={handleUpdatePassword}>
                   <p className="auth-subtitle">Buat kata sandi baru Anda.</p>
                   <div className="input-group">
-                    <span className="input-icon">🔒</span>
+                    <span className="input-icon"></span>
                     <input 
                       type={showPasswordLogin ? "text" : "password"} 
                       placeholder="Sandi Baru" 

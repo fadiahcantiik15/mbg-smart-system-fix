@@ -42,6 +42,11 @@ export default function DashboardPage() {
   const [trashEntries, setTrashEntries] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, segar: 0, basi: 0 });
 
+  // === STATE UNTUK PENCARIAN ===
+  const [searchQueryLog, setSearchQueryLog] = useState("");
+  const [searchQueryPending, setSearchQueryPending] = useState("");
+  const [searchQueryTrash, setSearchQueryTrash] = useState("");
+
   // States untuk Approval Admin
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [isLoadingPending, setIsLoadingPending] = useState(false);
@@ -281,7 +286,7 @@ export default function DashboardPage() {
       }]);
 
       if (error) throw error;
-      showToast("✅ Hasil & Lokasi berhasil disimpan!");
+      showToast("Hasil & Lokasi berhasil disimpan!");
       setCameraMode("input");
       fetchLogs(); 
     } catch (err: any) {
@@ -331,15 +336,46 @@ export default function DashboardPage() {
     try {
       const { error } = await supabase.from("users").update({ status: newStatus }).eq("id", id);
       if (error) throw error;
-      showToast(`✅ Status ${nama} diubah menjadi ${newStatus.toUpperCase()}`);
+      showToast(`Status ${nama} diubah menjadi ${newStatus.toUpperCase()}`);
       setPendingUsers(pendingUsers.filter(user => user.id !== id));
     } catch (err: any) { alert("Gagal mengubah status: " + err.message); }
   };
 
+  // === FUNGSI FILTER PENCARIAN ===
+  const filteredLogs = logEntries.filter((log) => {
+    if (!searchQueryLog) return true;
+    const query = searchQueryLog.toLowerCase();
+    return (
+      (log.jenis_makanan?.toLowerCase().includes(query)) ||
+      (log.petugas_nama?.toLowerCase().includes(query)) ||
+      (log.status?.toLowerCase().includes(query))
+    );
+  });
+
+  const filteredPendingUsers = pendingUsers.filter((user) => {
+    if (!searchQueryPending) return true;
+    const query = searchQueryPending.toLowerCase();
+    return (
+      (user.nama_lengkap?.toLowerCase().includes(query)) ||
+      (user.username?.toLowerCase().includes(query)) ||
+      (user.lokasi?.toLowerCase().includes(query))
+    );
+  });
+
+  const filteredTrashEntries = trashEntries.filter((log) => {
+    if (!searchQueryTrash) return true;
+    const query = searchQueryTrash.toLowerCase();
+    return (
+      (log.jenis_makanan?.toLowerCase().includes(query)) ||
+      (log.petugas_nama?.toLowerCase().includes(query)) ||
+      (log.status?.toLowerCase().includes(query))
+    );
+  });
+
   const handleExportExcel = () => {
-    if (logEntries.length === 0) { alert("Belum ada data untuk diunduh."); return; }
+    if (filteredLogs.length === 0) { alert("Belum ada data untuk diunduh."); return; }
     let csv = "Waktu,Status,Jenis Makanan,Petugas,Akurasi,Lokasi GPS,Kalori (kkal),Protein (g),Lemak (g),Karbo (g)\n";
-    logEntries.forEach((log) => {
+    filteredLogs.forEach((log) => {
       const waktu = new Date(log.created_at).toLocaleString("id-ID").replace(/,/g, " ");
       const gps = log.koordinat_lokasi ? `"${log.koordinat_lokasi.replace(/\n/g, ' ')}"` : "-";
       csv += `${waktu},${log.status},${log.jenis_makanan},${log.petugas_nama},${Math.round(log.confidence * 100)}%,${gps},${log.kalori},${log.protein},${log.lemak},${log.karbo}\n`;
@@ -365,7 +401,6 @@ export default function DashboardPage() {
 
   const showToast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(""), 3000); };
   
-  // DITAMBAHKAN jenis_kelamin
   const openEditModal = () => { 
     setEditForm({ 
       nama_lengkap: currentUser.nama_lengkap || "", 
@@ -376,7 +411,6 @@ export default function DashboardPage() {
     setIsEditModalOpen(true); 
   };
   
-  // DITAMBAHKAN jenis_kelamin
   const handleSaveProfil = async (e: React.FormEvent) => {
     e.preventDefault(); setIsSavingProfile(true);
     try {
@@ -387,7 +421,7 @@ export default function DashboardPage() {
         jenis_kelamin: editForm.jenis_kelamin 
       }).eq("username", currentUser.username).select().single();
       if (error) throw error;
-      localStorage.setItem("mbg_user", JSON.stringify(data)); setCurrentUser(data); setIsEditModalOpen(false); showToast("✅ Profil berhasil diperbarui!");
+      localStorage.setItem("mbg_user", JSON.stringify(data)); setCurrentUser(data); setIsEditModalOpen(false); showToast("Profil berhasil diperbarui!");
     } catch (err: any) { alert("Gagal menyimpan: " + err.message); } finally { setIsSavingProfile(false); }
   };
 
@@ -429,36 +463,30 @@ export default function DashboardPage() {
 
         <nav className="sidebar-nav">
             <button className={`nav-item ${activePage === "home" ? "active" : ""}`} onClick={() => { setActivePage("home"); setIsSidebarOpen(false); }}>
-              {/* Ganti tulisan NAMA_ICON_HOME.png dengan file aslimu */}
               <img src="/assets/icon-home.png" alt="Home" style={{ width: "30px", height: "30px", objectFit: "contain", marginRight: "8px" }} /> Halaman Utama
             </button>
 
             {!isAdmin && (
               <button className={`nav-item ${activePage === "camera" ? "active" : ""}`} onClick={() => { setActivePage("camera"); setIsSidebarOpen(false); }}>
-                {/* Ganti tulisan NAMA_ICON_KAMERA.png dengan file aslimu */}
                 <img src="/assets/icon-camera-utama.png" alt="Kamera" style={{ width: "30px", height: "30px", objectFit: "contain", marginRight: "8px" }} /> Kamera Deteksi
               </button>
             )}
 
-            {isAdmin && (
+           {isAdmin && (
               <button className={`nav-item ${activePage === "approval" ? "active" : ""}`} onClick={() => { setActivePage("approval"); setIsSidebarOpen(false); }}>
-                {/* Ganti tulisan NAMA_ICON_VERIFIKASI.png dengan file aslimu */}
-                <img src="/assets/NAMA_ICON_VERIFIKASI.png" alt="Verifikasi" style={{ width: "22px", height: "22px", objectFit: "contain", marginRight: "8px" }} /> Verifikasi Petugas
+                <img src="/assets/icon-verifikasi.png" alt="Verifikasi" style={{ width: "35px", height: "35px", objectFit: "contain", marginRight: "8px" }} /> Verifikasi Petugas
               </button>
             )}
 
             <button className={`nav-item ${activePage === "log" ? "active" : ""}`} onClick={() => { setActivePage("log"); setIsSidebarOpen(false); }}>
-              {/* Ganti tulisan NAMA_ICON_LOG.png dengan file aslimu */}
               <img src="/assets/icon-logriwayat.png" alt="Log" style={{ width: "30px", height: "30px", objectFit: "contain", marginRight: "8px" }} /> Log Riwayat
             </button>
 
             <button className={`nav-item ${activePage === "sampah" ? "active" : ""}`} onClick={() => { setActivePage("sampah"); setIsSidebarOpen(false); }}>
-              {/* Ganti tulisan NAMA_ICON_SAMPAH.png dengan file aslimu */}
               <img src="/assets/icon-trashutama.png" alt="Sampah" style={{ width: "28px", height: "28px", objectFit: "contain", marginRight: "8px" }} /> Data Terhapus
             </button>
 
             <button className={`nav-item ${activePage === "profil" ? "active" : ""}`} onClick={() => { setActivePage("profil"); setIsSidebarOpen(false); }}>
-              {/* Ganti tulisan NAMA_ICON_PROFIL.png dengan file aslimu */}
               <img src="/assets/icon-profile.png" alt="Profil" style={{ width: "28px", height: "28px", objectFit: "contain", marginRight: "8px" }} /> Akun Saya
             </button>
           </nav>
@@ -746,10 +774,7 @@ export default function DashboardPage() {
 
                 </div>
               ) : !["camera", "log", "sampah", "profil"].includes(activePage) ? (
-                <h2 style={{ fontSize: "1.25rem", color: "var(--clr-navy)", fontWeight: "700", marginLeft: "10px" }}>
-                  {activePage === 'approval' ? '🛡️ Verifikasi Petugas' : 
-                   isAdmin ? '🏠 Dashboard Admin' : '🏠 Dashboard Utama'}
-                </h2>
+                <></>
               ) : null}
             </div>
           </div>
@@ -757,29 +782,109 @@ export default function DashboardPage() {
           <div className="dashboard-body">
             {activePage === "home" && (
               <div className="dash-view active">
-                {isAdmin ? (
-                  <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
-                    <h2 style={{ fontSize: "1.8rem", marginBottom: "0.5rem", color: "var(--clr-navy)" }}>Dashboard Administrator</h2>
-                    <p style={{ color: "var(--clr-gray-500)", maxWidth: "500px", margin: "0 auto 2rem", lineHeight: "1.6" }}>
-                      Pantau secara *real-time* kualitas makanan dan performa petugas lapangan dari seluruh Dapur MBG.
-                    </p>
+               {isAdmin ? (
+              <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
+                
+                {/* === AREA JUDUL TERPUSAT === */}
+                <div style={{ 
+                  marginBottom: "1.5rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  textAlign: "center"
+                }}>
+                  
+                  {/* KOTAK JUDUL BIRU NAVY */}
+                  <div style={{ 
+                    backgroundColor: "#153759", 
+                    color: "white", 
+                    padding: "10px 24px", 
+                    borderRadius: "30px", 
+                    fontWeight: "700", 
+                    fontSize: "1.05rem", 
+                    marginBottom: "10px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    boxShadow: "0 6px 15px rgba(21, 55, 89, 0.25)"
+                  }}>
+                    <img 
+                      src="/assets/icon-admin-dashboard.png" 
+                      alt="Icon Dashboard" 
+                      style={{ width: "45px", height: "45px", objectFit: "contain" }} 
+                    />
+                    Dashboard Administrator
+                  </div>
 
-                    <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap", marginBottom: "3rem" }}>
-                      <div className="profil-card" style={{ padding: "1.5rem", borderRadius: "var(--radius-md)", minWidth: "160px", borderBottom: "4px solid var(--clr-teal)" }}>
-                        <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--clr-gray-500)" }}>Total Pemeriksaan</div>
-                        <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "var(--clr-navy)", margin: "10px 0" }}>{stats.total}</div>
-                        <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)" }}>Laporan masuk</div>
+                  {/* TEKS DESKRIPTIF TERPUSAT */}
+                  <p style={{ fontSize: "0.85rem", color: "#153759", margin: "0 0 20px 0", maxWidth: "600px",   lineHeight: "2" }}>
+                    Pusat kendali utama untuk memantau kualitas gizi, aktivitas petugas, dan operasional <br />
+                    Dapur MBG secara menyeluruh.
+                  </p>
+                </div>
+
+                    <div style={{ display: "flex", gap: "1rem", justifyContent: "center", marginBottom: "2rem", flexWrap: "wrap" }}>
+                      
+                      {/* CONTAINER UTAMA (Memastikan box melebar ke samping) */}
+                    <div style={{ 
+                      display: "flex", 
+                      gap: "1.5rem", 
+                      width: "100%", 
+                      justifyContent: "center", 
+                      flexWrap: "wrap", 
+                      marginBottom: "2rem" 
+                    }}>
+
+                      {/* --- KOTAK 1: KUALITAS SEGAR --- */}
+                      <div className="profil-card" style={{ 
+                        flex: 1, 
+                        minWidth: "250px", 
+                        padding: "1.5rem", 
+                        borderRadius: "12px", 
+                        borderBottom: "4px solid #2ecc71",
+                        textAlign: "center" 
+                      }}>
+                        <p style={{ fontSize: "0.85rem", color: "var(--clr-gray-500)", fontWeight: "700", marginBottom: "0.5rem" }}>KUALITAS SEGAR</p>
+                        <h3 style={{ fontSize: "2.5rem", color: "#4cbb17", margin: "0.5rem 0", fontWeight: "bold" }}>
+                          {logEntries.filter((log) => log.status === "Segar").length}
+                        </h3>
+                        <p style={{ fontSize: "0.75rem", color: "var(--clr-gray-400)" }}>Layak konsumsi</p>
                       </div>
-                      <div className="profil-card" style={{ padding: "1.5rem", borderRadius: "var(--radius-md)", minWidth: "160px", borderBottom: "4px solid #2ecc71" }}>
-                        <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--clr-gray-500)" }}>Kualitas SEGAR 🟢</div>
-                        <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#2ecc71", margin: "10px 0" }}>{stats.segar}</div>
-                        <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)" }}>Layak konsumsi</div>
+
+                      {/* --- KOTAK 2: KUALITAS BASI --- */}
+                      <div className="profil-card" style={{ 
+                        flex: 1, 
+                        minWidth: "250px", 
+                        padding: "1.5rem", 
+                        borderRadius: "12px", 
+                        borderBottom: "4px solid #e74c3c",
+                        textAlign: "center" 
+                      }}>
+                        <p style={{ fontSize: "0.85rem", color: "var(--clr-gray-500)", fontWeight: "700", marginBottom: "0.5rem" }}>KUALITAS BASI</p>
+                        <h3 style={{ fontSize: "2.5rem", color: "#e74c3c", margin: "0.5rem 0", fontWeight: "bold" }}>
+                          {logEntries.filter((log) => log.status === "Basi").length}
+                        </h3>
+                        <p style={{ fontSize: "0.75rem", color: "var(--clr-gray-400)" }}>Tidak layak</p>
                       </div>
-                      <div className="profil-card" style={{ padding: "1.5rem", borderRadius: "var(--radius-md)", minWidth: "160px", borderBottom: "4px solid #e74c3c" }}>
-                        <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--clr-gray-500)" }}>Kualitas BASI 🔴</div>
-                        <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#e74c3c", margin: "10px 0" }}>{stats.basi}</div>
-                        <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)" }}>Tidak layak</div>
+
+                      {/* --- KOTAK 3: TOTAL PEMERIKSAAN --- */}
+                      <div className="profil-card" style={{ 
+                        flex: 1,           /* Membuat box mengisi ruang kosong */
+                        minWidth: "250px", /* Batas minimal agar tetap bagus di layar kecil */
+                        padding: "1.5rem", 
+                        borderRadius: "12px", 
+                        borderBottom: "4px solid #7ea69f",
+                        textAlign: "center" 
+                      }}>
+                        <p style={{ fontSize: "0.85rem", color: "var(--clr-gray-500)", fontWeight: "700", marginBottom: "0.5rem" }}>TOTAL PEMERIKSAAN</p>
+                        <h3 style={{ fontSize: "2.5rem", color: "#153759", margin: "0.5rem 0", fontWeight: "bold" }}>
+                          {logEntries.length}
+                        </h3>
+                        <p style={{ fontSize: "0.75rem", color: "var(--clr-gray-400)" }}>Laporan masuk</p>
                       </div>
+
+                    </div>
+
                     </div>
                   </div>
                ) : (
@@ -983,6 +1088,73 @@ export default function DashboardPage() {
             {activePage === "approval" && isAdmin && (
               <div className="dash-view active">
                 <div className="log-section" style={{ width: "100%" }}>
+                  {/* === AREA JUDUL TERPUSAT SERUPA DENGAN "DATA TERHAPUS" === */}
+                  <div style={{ 
+                    marginBottom: "1.5rem",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    textAlign: "center"
+                  }}>
+                    
+                    {/* KOTAK JUDUL BIRU NAVY DENGAN GAMBAR ASET */}
+                    <div style={{ 
+                      backgroundColor: "#153759", 
+                      color: "white", 
+                      padding: "10px 24px", 
+                      borderRadius: "30px", 
+                      fontWeight: "700", 
+                      fontSize: "1.05rem", 
+                      marginBottom: "10px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      boxShadow: "0 6px 15px rgba(21, 55, 89, 0.25)"
+                    }}>
+                      <img 
+                      src="/assets/admin-verification.png" 
+                      alt="Icon Verifikasi" 
+                      style={{ width: "45px", height: "45px", objectFit: "contain" }} 
+                    />
+                      Verifikasi Petugas
+                    </div>
+
+                    {/* TEKS DESKRIPTIF TERPUSAT */}
+                    <p style={{ fontSize: "0.85rem", color: "#153759", margin: "0 0 10px 0", maxWidth: "600px", lineHeight: "2" }}>
+                      Berikut adalah daftar petugas yang sedang menunggu verifikasi akun. <br />
+                      Harap tinjau dan berikan persetujuan akses.
+                    </p>
+
+                    {/* === FITUR PENCARIAN VERIFIKASI === */}
+                    {pendingUsers.length > 0 && (
+                      <div style={{ display: "flex", justifyContent: "center", width: "100%", maxWidth: "800px", marginTop: "10px" }}>
+                        <div style={{ flex: 1, minWidth: "250px", position: "relative" }}>
+                          <img 
+                            src="/assets/icon-search.png" /* <--- GANTI NAMA FILE INI */
+                            alt="Search Icon"
+                            style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", width: "18px", height: "18px", objectFit: "contain" }}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Cari nama, username, atau lokasi..."
+                            value={searchQueryPending}
+                            onChange={(e) => setSearchQueryPending(e.target.value)}
+                            style={{
+                              width: "100%",
+                              padding: "10px 10px 10px 38px",
+                              borderRadius: "8px",
+                              border: "1px solid rgba(21, 55, 89, 0.2)",
+                              outline: "none",
+                              fontSize: "0.9rem",
+                              color: "#153759",
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                    <div className="table-container">
                       <table className="log-table">
                         <thead>
@@ -991,16 +1163,24 @@ export default function DashboardPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {pendingUsers.map((user) => (
-                            <tr key={user.id}>
-                              <td style={{ fontWeight: "700", color: "var(--clr-navy)" }}>{user.nama_lengkap}</td>
-                              <td>{user.username}</td><td>{user.no_hp}</td><td>{user.lokasi}</td>
-                              <td style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
-                                <button onClick={() => handleUpdateStatusPetugas(user.id, "approved", user.nama_lengkap)} style={{ background: "var(--clr-fresh)", color: "white", padding: "8px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "700" }}>Setujui</button>
-                                <button onClick={() => handleUpdateStatusPetugas(user.id, "ditolak", user.nama_lengkap)} style={{ background: "var(--clr-spoiled)", color: "white", padding: "8px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "700" }}>Tolak</button>
+                          {filteredPendingUsers.length > 0 ? (
+                            filteredPendingUsers.map((user) => (
+                              <tr key={user.id}>
+                                <td style={{ fontWeight: "700", color: "var(--clr-navy)" }}>{user.nama_lengkap}</td>
+                                <td>{user.username}</td><td>{user.no_hp}</td><td>{user.lokasi}</td>
+                                <td style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+                                  <button onClick={() => handleUpdateStatusPetugas(user.id, "approved", user.nama_lengkap)} style={{ background: "var(--clr-fresh)", color: "white", padding: "8px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "700" }}>Setujui</button>
+                                  <button onClick={() => handleUpdateStatusPetugas(user.id, "ditolak", user.nama_lengkap)} style={{ background: "var(--clr-spoiled)", color: "white", padding: "8px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "700" }}>Tolak</button>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={5} style={{ textAlign: "center", padding: "20px", color: "var(--clr-gray-500)", fontWeight: "500" }}>
+                                {searchQueryPending ? "Tidak ada hasil pencarian yang cocok." : "Belum ada petugas yang menunggu verifikasi."}
                               </td>
                             </tr>
-                          ))}
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -1033,7 +1213,6 @@ export default function DashboardPage() {
                       gap: "12px", /* Jarak sedikit dilebarin biar pas */
                       boxShadow: "0 6px 15px rgba(21, 55, 89, 0.25)"
                     }}>
-                      {/* GANTI tulisan NAMA_FILE_ICON_LOG.png DENGAN NAMA FILE ASET KAMU */}
                       <img 
                         src="/assets/icon-paper.png" 
                         alt="Icon Log" 
@@ -1046,19 +1225,57 @@ export default function DashboardPage() {
                       Seluruh hasil pemindaian kualitas dan gizi makanan tersimpan secara otomatis di sini.
                     </p>
 
-                    {/* DITAMBAHKAN isAdmin AGAR HANYA ADMIN YANG BISA LIHAT TOMBOL INI */}
+                    {/* === AREA FITUR PENCARIAN & TOMBOL EXPORT (HANYA UNTUK ADMIN) === */}
                     {isAdmin && logEntries.length > 0 && (
-                      <div style={{ display: "flex", gap: "10px", marginTop: "5px" }}>
-                        <button onClick={handleExportExcel} style={{ background: "#217346", color: "white", border: "none", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
-                          {/* Ubah NAMA_ICON_EXCEL.png dengan file asetmu jika ada */}
-                          <img src="/assets/NAMA_ICON_EXCEL.png" alt="Excel" style={{ width: "16px", height: "16px", objectFit: "contain" }} />
-                          Excel
-                        </button>
-                        <button onClick={handleExportPDF} style={{ background: "#cb4335", color: "white", border: "none", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
-                          {/* Ubah NAMA_ICON_PDF.png dengan file asetmu jika ada */}
-                          <img src="/assets/NAMA_ICON_PDF.png" alt="PDF" style={{ width: "16px", height: "16px", objectFit: "contain" }} />
-                          PDF
-                        </button>
+                      <div style={{ 
+                        display: "flex", 
+                        flexWrap: "wrap", 
+                        gap: "15px", 
+                        marginTop: "10px", 
+                        justifyContent: "center", 
+                        alignItems: "center", 
+                        width: "100%", 
+                        maxWidth: "800px" 
+                      }}>
+                        
+                        {/* KOTAK PENCARIAN (Search Bar) */}
+                        <div style={{ flex: 1, minWidth: "250px", position: "relative" }}>
+                          <img 
+                            src="/assets/icon-search.png" /* <--- GANTI NAMA FILE INI */
+                            alt="Search Icon"
+                            style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", width: "18px", height: "18px", objectFit: "contain" }}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Cari makanan, petugas, atau status..."
+                            value={searchQueryLog}
+                            onChange={(e) => setSearchQueryLog(e.target.value)}
+                            style={{
+                              width: "100%",
+                              padding: "10px 10px 10px 38px",
+                              borderRadius: "8px",
+                              border: "1px solid rgba(21, 55, 89, 0.2)",
+                              outline: "none",
+                              fontSize: "0.9rem",
+                              color: "#153759",
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
+                            }}
+                          />
+                        </div>
+
+                        {/* TOMBOL EXCEL & PDF */}
+                        <div style={{ display: "flex", gap: "10px" }}>
+                          <button onClick={handleExportExcel} style={{ background: "#217346", color: "white", border: "none", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+                            <img src="/assets/icon-excel.png" alt="Excel" style={{ width: "25px", height: "25px", objectFit: "contain" }} />
+                            Excel
+                          </button>
+                          
+                          <button onClick={handleExportPDF} style={{ background: "#cb4335", color: "white", border: "none", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+                            <img src="/assets/icon-pdf.png" alt="PDF" style={{ width: "25px", height: "25px", objectFit: "contain" }} />
+                            PDF
+                          </button>
+                        </div>
+
                       </div>
                     )}
                   </div>
@@ -1068,36 +1285,43 @@ export default function DashboardPage() {
                         <tr><th>Waktu</th><th>Status</th><th>Makanan</th><th>Petugas</th><th>Akurasi</th><th style={{ textAlign: "center" }}>Aksi</th></tr>
                       </thead>
                       <tbody>
-                        {logEntries.map((log, i) => (
-                          <tr key={i}>
-                            <td style={{ fontSize: "0.8rem" }}>{new Date(log.created_at).toLocaleString("id-ID")}</td>
-                            <td><span className={`badge ${log.status === "SEGAR" ? "badge-fresh" : "badge-spoiled"}`}>{log.status}</span></td>
-                            <td style={{ fontWeight: "600" }}>{log.jenis_makanan}</td>
-                            <td>{log.petugas_nama}</td><td>{Math.round(log.confidence * 100)}%</td>
-                           {/* GANTI EMOJI DENGAN GAMBAR ASET DARI FOLDER assets */}
-            <td style={{ textAlign: "center" }}>
-              <button 
-                onClick={() => handleSoftDelete(log.id)} 
-                style={{ 
-                  background: "transparent", 
-                  border: "none", 
-                  cursor: "pointer", 
-                  padding: "0",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center"
-                }}
-              >
-                {/* GANTI tulisan NAMA_FILE_ICON_HAPUS.png DENGAN NAMA FILE ASET KAMU */}
-                <img 
-                  src="/assets/icon-trashutama.png" 
-                  alt="Hapus" 
-                  style={{ width: "22px", height: "22px", objectFit: "contain" }} 
-                />
-              </button>
-            </td>
+                        {/* MENGGUNAKAN filteredLogs BUKAN logEntries AGAR BISA DICARI */}
+                        {filteredLogs.length > 0 ? (
+                          filteredLogs.map((log, i) => (
+                            <tr key={i}>
+                              <td style={{ fontSize: "0.8rem" }}>{new Date(log.created_at).toLocaleString("id-ID")}</td>
+                              <td><span className={`badge ${log.status === "SEGAR" ? "badge-fresh" : "badge-spoiled"}`}>{log.status}</span></td>
+                              <td style={{ fontWeight: "600" }}>{log.jenis_makanan}</td>
+                              <td>{log.petugas_nama}</td><td>{Math.round(log.confidence * 100)}%</td>
+                              <td style={{ textAlign: "center" }}>
+                                <button 
+                                  onClick={() => handleSoftDelete(log.id)} 
+                                  style={{ 
+                                    background: "transparent", 
+                                    border: "none", 
+                                    cursor: "pointer", 
+                                    padding: "0",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center"
+                                  }}
+                                >
+                                  <img 
+                                    src="/assets/icon-trashutama.png" 
+                                    alt="Hapus" 
+                                    style={{ width: "22px", height: "22px", objectFit: "contain" }} 
+                                  />
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} style={{ textAlign: "center", padding: "20px", color: "var(--clr-gray-500)", fontWeight: "500" }}>
+                              {searchQueryLog ? "Tidak ada hasil pencarian yang cocok." : "Belum ada riwayat laporan."}
+                            </td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -1130,16 +1354,43 @@ export default function DashboardPage() {
                       gap: "10px",
                       boxShadow: "0 6px 15px rgba(21, 55, 89, 0.25)"
                     }}>
-                      {/* GANTI SVG LAMA DENGAN INI 👇 */}
                       <img 
                         src="/assets/icon-trash.png" 
                         alt="Ikon Data Terhapus" 
                         style={{ width: "35px", height: "35px", objectFit: "contain" }} 
                       />
-                      {/* 👆 ========================== */}
                       Data Terhapus
                     </div>
                     <p style={{ fontSize: "0.85rem", color: "#153759", margin: "0" }}>Item akan dihapus permanen secara otomatis setelah 7 hari.</p>
+                    
+                    {/* === FITUR PENCARIAN DATA TERHAPUS === */}
+                    {trashEntries.length > 0 && (
+                      <div style={{ display: "flex", justifyContent: "center", width: "100%", maxWidth: "800px", marginTop: "10px" }}>
+                        <div style={{ flex: 1, minWidth: "250px", position: "relative" }}>
+                          <img 
+                            src="/assets/icon-search.png" /* <--- GANTI NAMA FILE INI */
+                            alt="Search Icon"
+                            style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", width: "18px", height: "18px", objectFit: "contain" }}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Cari makanan, petugas, atau status..."
+                            value={searchQueryTrash}
+                            onChange={(e) => setSearchQueryTrash(e.target.value)}
+                            style={{
+                              width: "100%",
+                              padding: "10px 10px 10px 38px",
+                              borderRadius: "8px",
+                              border: "1px solid rgba(21, 55, 89, 0.2)",
+                              outline: "none",
+                              fontSize: "0.9rem",
+                              color: "#153759",
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="table-container">
@@ -1148,16 +1399,25 @@ export default function DashboardPage() {
                         <tr><th>Dihapus Pada</th><th>Status / Makanan</th><th>Petugas</th><th>Tersisa</th><th style={{ textAlign: "center" }}>Tindakan</th></tr>
                       </thead>
                       <tbody>
-                        {trashEntries.map((log, i) => (
-                          <tr key={i}>
-                            <td style={{ fontSize: "0.8rem", color: "#cb4335" }}>{new Date(log.deleted_at).toLocaleString("id-ID")}</td>
-                            <td><span className={`badge ${log.status === "SEGAR" ? "badge-fresh" : "badge-spoiled"}`}>{log.status}</span> <strong>{log.jenis_makanan}</strong></td>
-                            <td>{log.petugas_nama}</td><td>{7 - Math.floor((new Date().getTime() - new Date(log.deleted_at).getTime()) / (1000 * 3600 * 24))} Hari</td>
-                            <td style={{ textAlign: "center" }}>
-<button onClick={() => handleRestore(log.id)} style={{ background: "#2ecc71", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold", marginRight: "5px" }}>Pulihkan</button>                                <button onClick={() => handleHardDelete(log.id)} style={{ background: "#e74c3c", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>Hapus</button>
+                        {filteredTrashEntries.length > 0 ? (
+                          filteredTrashEntries.map((log, i) => (
+                            <tr key={i}>
+                              <td style={{ fontSize: "0.8rem", color: "#cb4335" }}>{new Date(log.deleted_at).toLocaleString("id-ID")}</td>
+                              <td><span className={`badge ${log.status === "SEGAR" ? "badge-fresh" : "badge-spoiled"}`}>{log.status}</span> <strong>{log.jenis_makanan}</strong></td>
+                              <td>{log.petugas_nama}</td><td>{7 - Math.floor((new Date().getTime() - new Date(log.deleted_at).getTime()) / (1000 * 3600 * 24))} Hari</td>
+                              <td style={{ textAlign: "center" }}>
+                                <button onClick={() => handleRestore(log.id)} style={{ background: "#2ecc71", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold", marginRight: "5px" }}>Pulihkan</button>
+                                <button onClick={() => handleHardDelete(log.id)} style={{ background: "#e74c3c", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>Hapus</button>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={5} style={{ textAlign: "center", padding: "20px", color: "var(--clr-gray-500)", fontWeight: "500" }}>
+                              {searchQueryTrash ? "Tidak ada hasil pencarian yang cocok." : "Belum ada data yang terhapus."}
                             </td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -1169,14 +1429,44 @@ export default function DashboardPage() {
             /* DESAIN HALAMAN PROFIL BARU (KOTAK PUTIH + JUDUL NAVY)     */
             /* ========================================================= */}
            {activePage === "profil" && (
-              <div className="dash-view active" style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "1rem" }}>
-                
-                {/* === KOTAK JUDUL AKUN SAYA === */}
+              <div className="dash-view active">
+                {/* === AREA JUDUL TERPUSAT === */}
                 <div style={{ 
-                  backgroundColor: "#153759", color: "white", padding: "10px 24px", borderRadius: "30px", fontWeight: "700", fontSize: "1.05rem", marginBottom: "20px", display: "inline-flex", alignItems: "center", gap: "10px", boxShadow: "0 6px 15px rgba(21, 55, 89, 0.25)"
+                  marginBottom: "1.5rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  textAlign: "center"
                 }}>
-                  <img src="/assets/icon-user.png" alt="Ikon Akun" style={{ width: "35px", height: "35px", objectFit: "contain" }} />
-                  Akun Saya
+                  
+                  {/* KOTAK JUDUL BIRU NAVY */}
+                  <div style={{ 
+                    backgroundColor: "#153759", 
+                    color: "white", 
+                    padding: "10px 24px", 
+                    borderRadius: "30px", 
+                    fontWeight: "700", 
+                    fontSize: "1.05rem", 
+                    marginBottom: "10px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    boxShadow: "0 6px 15px rgba(21, 55, 89, 0.25)"
+                  }}>
+                    {/* Pastikan nama file iconnya sesuai dengan asetmu */}
+                    <img 
+                      src="/assets/icon-user.png" 
+                      alt="Icon Akun" 
+                      style={{ width: "40px", height: "40px", objectFit: "contain" }} 
+                    />
+                    Akun Saya
+                  </div>
+
+                  {/* TEKS DESKRIPTIF TERPUSAT (Pilih salah satu kata-kata di atas) */}
+                  <p style={{ fontSize: "0.85rem", color: "#153759", margin: "0 0 10px 0", maxWidth: "600px", lineHeight: "2" }}>
+                    Lihat detail profilmu dan kelola akses keamanan akun anda  <br />
+                    sebagai petugas terdaftar.
+                  </p>
                 </div>
 
                 {/* === KOTAK DATA PROFIL (DIPAKSA PUTIH AGAR TEKS TERBACA) === */}
@@ -1320,7 +1610,7 @@ export default function DashboardPage() {
                 Yakin Ingin Keluar?
               </h3>
               <p style={{ color: "rgba(255,255,255,0.8)", marginBottom: "2rem", fontSize: "0.95rem", lineHeight: "1.5" }}>
-                Sesi Anda akan diakhiri dan Anda harus login kembali.
+                Sesi anda akan diakhiri dan anda harus login kembali.
               </p>
               
               <div className="modal-actions" style={{ display: "flex", justifyContent: "center", gap: "15px", width: "100%" }}>
