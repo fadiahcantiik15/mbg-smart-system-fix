@@ -46,9 +46,9 @@ export default function DashboardPage() {
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [isLoadingPending, setIsLoadingPending] = useState(false);
 
-  // Profil
+  // Profil (DITAMBAHKAN jenis_kelamin)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ nama_lengkap: "", lokasi: "", no_hp: "" });
+  const [editForm, setEditForm] = useState({ nama_lengkap: "", lokasi: "", no_hp: "", jenis_kelamin: "" });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // State Konfirmasi Keluar
@@ -364,12 +364,28 @@ export default function DashboardPage() {
   };
 
   const showToast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(""), 3000); };
-  const openEditModal = () => { setEditForm({ nama_lengkap: currentUser.nama_lengkap || "", lokasi: currentUser.lokasi || "", no_hp: currentUser.no_hp || "" }); setIsEditModalOpen(true); };
   
+  // DITAMBAHKAN jenis_kelamin
+  const openEditModal = () => { 
+    setEditForm({ 
+      nama_lengkap: currentUser.nama_lengkap || "", 
+      lokasi: currentUser.lokasi || "", 
+      no_hp: currentUser.no_hp || "",
+      jenis_kelamin: currentUser.jenis_kelamin || ""
+    }); 
+    setIsEditModalOpen(true); 
+  };
+  
+  // DITAMBAHKAN jenis_kelamin
   const handleSaveProfil = async (e: React.FormEvent) => {
     e.preventDefault(); setIsSavingProfile(true);
     try {
-      const { data, error } = await supabase.from("users").update({ nama_lengkap: editForm.nama_lengkap, lokasi: editForm.lokasi, no_hp: editForm.no_hp }).eq("username", currentUser.username).select().single();
+      const { data, error } = await supabase.from("users").update({ 
+        nama_lengkap: editForm.nama_lengkap, 
+        lokasi: editForm.lokasi, 
+        no_hp: editForm.no_hp,
+        jenis_kelamin: editForm.jenis_kelamin 
+      }).eq("username", currentUser.username).select().single();
       if (error) throw error;
       localStorage.setItem("mbg_user", JSON.stringify(data)); setCurrentUser(data); setIsEditModalOpen(false); showToast("✅ Profil berhasil diperbarui!");
     } catch (err: any) { alert("Gagal menyimpan: " + err.message); } finally { setIsSavingProfile(false); }
@@ -411,44 +427,63 @@ export default function DashboardPage() {
             <p>Smart System</p>
           </div>
 
-          <nav className="sidebar-nav">
+        <nav className="sidebar-nav">
             <button className={`nav-item ${activePage === "home" ? "active" : ""}`} onClick={() => { setActivePage("home"); setIsSidebarOpen(false); }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg> Halaman Utama
+              {/* Ganti tulisan NAMA_ICON_HOME.png dengan file aslimu */}
+              <img src="/assets/icon-home.png" alt="Home" style={{ width: "30px", height: "30px", objectFit: "contain", marginRight: "8px" }} /> Halaman Utama
             </button>
 
             {!isAdmin && (
               <button className={`nav-item ${activePage === "camera" ? "active" : ""}`} onClick={() => { setActivePage("camera"); setIsSidebarOpen(false); }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg> Kamera Langsung
+                {/* Ganti tulisan NAMA_ICON_KAMERA.png dengan file aslimu */}
+                <img src="/assets/icon-camera-utama.png" alt="Kamera" style={{ width: "30px", height: "30px", objectFit: "contain", marginRight: "8px" }} /> Kamera Deteksi
               </button>
             )}
 
             {isAdmin && (
               <button className={`nav-item ${activePage === "approval" ? "active" : ""}`} onClick={() => { setActivePage("approval"); setIsSidebarOpen(false); }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg> Verifikasi Petugas
+                {/* Ganti tulisan NAMA_ICON_VERIFIKASI.png dengan file aslimu */}
+                <img src="/assets/NAMA_ICON_VERIFIKASI.png" alt="Verifikasi" style={{ width: "22px", height: "22px", objectFit: "contain", marginRight: "8px" }} /> Verifikasi Petugas
               </button>
             )}
 
             <button className={`nav-item ${activePage === "log" ? "active" : ""}`} onClick={() => { setActivePage("log"); setIsSidebarOpen(false); }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg> Log Riwayat
+              {/* Ganti tulisan NAMA_ICON_LOG.png dengan file aslimu */}
+              <img src="/assets/icon-logriwayat.png" alt="Log" style={{ width: "30px", height: "30px", objectFit: "contain", marginRight: "8px" }} /> Log Riwayat
             </button>
+
             <button className={`nav-item ${activePage === "sampah" ? "active" : ""}`} onClick={() => { setActivePage("sampah"); setIsSidebarOpen(false); }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Tempat Sampah
+              {/* Ganti tulisan NAMA_ICON_SAMPAH.png dengan file aslimu */}
+              <img src="/assets/icon-trashutama.png" alt="Sampah" style={{ width: "28px", height: "28px", objectFit: "contain", marginRight: "8px" }} /> Data Terhapus
             </button>
+
             <button className={`nav-item ${activePage === "profil" ? "active" : ""}`} onClick={() => { setActivePage("profil"); setIsSidebarOpen(false); }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> Profil Saya
+              {/* Ganti tulisan NAMA_ICON_PROFIL.png dengan file aslimu */}
+              <img src="/assets/icon-profile.png" alt="Profil" style={{ width: "28px", height: "28px", objectFit: "contain", marginRight: "8px" }} /> Akun Saya
             </button>
           </nav>
 
           <div className="sidebar-footer">
             
-            {/* === KOTAK PROFIL === */}
+            {/* === KOTAK PROFIL BARU === */}
             <div className="profile-badge">
-              <div className="profile-avatar">{currentUser.nama_lengkap.charAt(0).toUpperCase()}</div>
+            {/* Munculkan avatar HANYA jika jenis kelamin sudah diatur */}
+              {currentUser.jenis_kelamin && (
+                <div className="profile-avatar-wrapper">
+                  <div className="profile-avatar" style={{ overflow: "hidden", border: "none" }}>
+                    {currentUser.jenis_kelamin === "Laki-laki" ? (
+                      <img src="/assets/icon-cowo.png" alt="Cowo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (
+                      <img src="/assets/icon-cewe.png" alt="Cewe" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    )}
+                  </div>
+                  <div className="status-dot" title="Online"></div>
+                </div>
+              )}
               <div className="profile-info">
-                <div className="profile-label">{currentUser.role}:</div>
                 <div className="profile-name">{currentUser.nama_lengkap}</div>
+                <div className="profile-label">{currentUser.role}</div>
               </div>
-              <span className="profile-status" style={{color: '#2ecc71', fontWeight: 'bold'}}>(online)</span>
             </div>
 
             <button className="btn-logout" onClick={handleLogoutClick}>
@@ -460,8 +495,22 @@ export default function DashboardPage() {
         <main className="main-content" style={{ zIndex: 10, position: "relative", background: "transparent" }}>
           
           <style>{`
+            @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+            * {
+              font-family: 'Plus Jakarta Sans', sans-serif !important;
+            }
+
             .main-content { background: transparent !important; }
             
+            /* ========================================================= */
+            /* PENGATURAN OPACITY (TRANSPARANSI) GAMBAR LATAR BELAKANG   */
+            /* ========================================================= */
+            .food-flake img {
+              opacity: 0.7 !important; /* <--- UBAH ANGKA INI (0.1 = sangat pudar, 1 = tajam) */
+              /* filter: blur(2px) !important; <-- Aktifkan kalau tetap mau tambah sedikit blur */
+            }
+
             /* ========================================================= */
             /* MODIFIED: Top Bar Layout                                  */
             /* ========================================================= */
@@ -478,7 +527,7 @@ export default function DashboardPage() {
 
             .dashboard-body { background: transparent !important; }
 
-            .quality-card, .profil-card, .modal-card, .log-empty {
+            .quality-card, .profil-card, .log-empty {
               background: rgba(255, 255, 255, 0.95) !important; 
               box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
             }
@@ -533,58 +582,85 @@ export default function DashboardPage() {
               width: 100% !important;
             }
 
+            /* ========================================================= */
+            /* DESAIN KOTAK PROFIL BARU (MODERN)                         */
+            /* ========================================================= */
             .profile-badge {
               display: flex !important;
               align-items: center !important;
               gap: 12px !important;
-              background-color: rgba(255, 255, 255, 0.05) !important;
+              background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%) !important;
               border-radius: var(--radius-md) !important;
-              padding: 1rem !important;
+              padding: 12px 16px !important;
               margin-bottom: 1rem !important; 
               border: 1px solid rgba(255,255,255, 0.1) !important;
               width: 100% !important; 
-              box-shadow: none !important;
-              backdrop-filter: none !important;
-              color: #ffffff !important;
+              box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
             }
 
-            .profile-info {
+            .profile-avatar-wrapper {
+              position: relative;
               display: flex;
-              flex-direction: column;
-              flex: 1; 
-            }
-            .profile-info .profile-label { 
-              color: rgba(255, 255, 255, 0.7) !important; 
-              font-size: 0.75rem !important;
-            }
-            .profile-info .profile-name { 
-              color: #ffffff !important; 
-              font-weight: 700 !important;
-              font-size: 0.9rem !important;
-              margin-top: 2px;
-            }
-            
-            .profile-status {
-              font-size: 0.7rem !important;
-              margin-left: auto !important;
-              white-space: nowrap;
             }
 
             .profile-avatar {
               background-color: rgba(255, 255, 255, 0.15) !important;
               color: #ffffff !important;
               border: 1px solid rgba(255, 255, 255, 0.3);
+              width: 42px !important;
+              height: 42px !important;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border-radius: 50%;
+              font-weight: bold;
+              font-size: 1.2rem;
+            }
+
+            .status-dot {
+              position: absolute;
+              bottom: 0;
+              right: 0;
+              width: 13px;
+              height: 13px;
+              background-color: #2ecc71;
+              border: 2px solid #153759;
+              border-radius: 50%;
+              box-shadow: 0 0 5px rgba(46, 204, 113, 0.5);
+            }
+
+            .profile-info {
+              display: flex;
+              flex-direction: column;
+              flex: 1; 
+              overflow: hidden;
+            }
+            
+            .profile-info .profile-name { 
+              color: #ffffff !important; 
+              font-weight: 700 !important;
+              font-size: 0.95rem !important;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+
+            .profile-info .profile-label { 
+              color: rgba(255, 255, 255, 0.6) !important; 
+              font-size: 0.75rem !important;
+              margin-top: 2px;
             }
 
             /* ========================================================= */
-            /* KOTAK PETUNJUK 1-2-3 (DISTRIBUSI MERATA SEPANJANG LAYAR)   */
+            /* KOTAK PETUNJUK 1-2-3 (KUMPUL DI TENGAH DENGAN GAP)        */
             /* ========================================================= */
             .step-indicators {
               display: flex !important; 
               flex-direction: row !important; 
-              justify-content: space-between !important; 
+              justify-content: center !important; 
+              gap: 200px !important; 
               width: 100% !important; 
-              padding: 0 2.5rem !important; 
+              padding: 0 !important; 
               box-sizing: border-box !important; 
             }
             
@@ -594,7 +670,8 @@ export default function DashboardPage() {
               box-shadow: 0 6px 15px rgba(21, 55, 89, 0.25) !important;
               border: 1px solid rgba(255,255,255, 0.1) !important;
               border-radius: var(--radius-sm) !important; 
-              padding: 1rem 1.5rem !important; 
+              padding: 0.3rem 2.5rem !important; /* <-- UBAH DI SINI: 2.5rem bikin kiri-kanannya lebih panjang */
+              min-width: 200px !important; /* <-- TAMBAHKAN INI: Memaksa kotak punya lebar minimal 240px */
               flex: 0 1 auto !important; 
               text-align: center !important; 
               display: flex !important; 
@@ -602,7 +679,6 @@ export default function DashboardPage() {
               align-items: center !important; 
               gap: 0.5rem !important; 
             }
-            
             .step-label {
               color: #ffffff !important;
               font-weight: 600 !important; 
@@ -615,10 +691,10 @@ export default function DashboardPage() {
               display: flex !important; 
               align-items: center !important;
               justify-content: center !important;
-              width: 40px !important; 
-              height: 40px !important;
+              width: 50px !important; 
+              height: 50px !important;
               border-radius: 50% !important;
-              font-size: 1.5rem !important; 
+              font-size: 1.8rem !important; 
             }
 
             @media print {
@@ -633,15 +709,45 @@ export default function DashboardPage() {
           <div className="top-bar">
             <div style={{ flex: 1 }}>
               {activePage === "home" && !isAdmin ? (
-                <div className="step-indicators">
-                  <div className="step-item"><div className="step-icon">📷</div><span className="step-label">1. Arahkan Kamera</span></div>
-                  <div className="step-item"><div className="step-icon">📸</div><span className="step-label">2. Tekan Ambil Foto</span></div>
-                  <div className="step-item"><div className="step-icon">📊</div><span className="step-label">3. Lihat Hasil Gizi</span></div>
+              <div className="step-indicators">
+                  
+                  {/* KOLOM 1: Deteksi Kualitas */}
+                  <div className="step-item">
+                    <div className="step-icon">
+                      <img src="/assets/icon-camera-utama.png" alt="Deteksi Kualitas" style={{ width: "35px", height: "35px", objectFit: "contain" }} />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "4px" }}>
+                      <span className="step-label">Deteksi Kualitas</span>
+                      <span style={{ fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.7)", fontWeight: "normal" }}>Analisis Kelayakan Konsumsi</span>
+                    </div>
+                  </div>
+                  
+                  {/* KOLOM 2: Info Nutrisi */}
+                  <div className="step-item">
+                    <div className="step-icon">
+                      <img src="/assets/icon-nutrisi.png" alt="Info Nutrisi" style={{ width: "35px", height: "35px", objectFit: "contain" }} />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "4px" }}>
+                      <span className="step-label">Info Nutrisi</span>
+                      <span style={{ fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.7)", fontWeight: "normal" }}>Kalori, protein, dll</span>
+                    </div>
+                  </div>
+                  
+                  {/* KOLOM 3: Log Riwayat */}
+                  <div className="step-item">
+                    <div className="step-icon">
+                      <img src="/assets/icon-logriwayat.png" alt="Log Riwayat" style={{ width: "35px", height: "35px", objectFit: "contain" }} />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "4px" }}>
+                      <span className="step-label">Log Riwayat</span>
+                      <span style={{ fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.7)", fontWeight: "normal" }}>Daftar Hasil Pengecekan</span>
+                    </div>
+                  </div>
+
                 </div>
-              ) : !["camera", "log", "sampah"].includes(activePage) ? (
+              ) : !["camera", "log", "sampah", "profil"].includes(activePage) ? (
                 <h2 style={{ fontSize: "1.25rem", color: "var(--clr-navy)", fontWeight: "700", marginLeft: "10px" }}>
-                  {activePage === 'profil' ? '👤 Profil Saya' : 
-                   activePage === 'approval' ? '🛡️ Verifikasi Petugas' : 
+                  {activePage === 'approval' ? '🛡️ Verifikasi Petugas' : 
                    isAdmin ? '🏠 Dashboard Admin' : '🏠 Dashboard Utama'}
                 </h2>
               ) : null}
@@ -676,40 +782,31 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
-                    <h2 style={{ fontSize: "1.6rem", marginBottom: "0.5rem" }}>Selamat Datang di MBG Smart System</h2>
-                    <p style={{ color: "var(--clr-gray-500)", maxWidth: "500px", margin: "0 auto 2rem", lineHeight: "1.6" }}>
-                      Gunakan menu <strong>Kamera Langsung</strong> untuk memulai analisis kualitas dan gizi makanan. Sistem akan mendeteksi kesegaran makanan dan menampilkan informasi nutrisi secara real-time.
+               ) : (
+                  <div style={{ textAlign: "center", padding: "2rem 1rem", marginTop: "0.rem", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <h2 style={{ fontSize: "1.8rem", marginBottom: "1rem", color: "var(--clr-navy)", fontWeight: "800" }}>Selamat Datang di MBG Smart System</h2>
+                    <p style={{ color: "#334155", maxWidth: "600px", lineHeight: "1.8", fontSize: "1rem", marginBottom: "3rem" }}>
+                      Gunakan menu <strong>Kamera Deteksi</strong> untuk memulai analisis kualitas dan gizi makanan. Sistem akan mendeteksi kesegaran makanan dan menampilkan informasi nutrisi secara real-time.
                     </p>
-
-                    <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-                      <div className="profil-card" style={{ padding: "1.5rem", minWidth: "160px" }}>
-                        <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>📷</div>
-                        <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>Deteksi Kualitas</div>
-                        <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)", marginTop: "4px" }}>AI-powered analysis</div>
-                      </div>
-                      <div className="profil-card" style={{ padding: "1.5rem", minWidth: "160px" }}>
-                        <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>📊</div>
-                        <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>Info Nutrisi</div>
-                        <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)", marginTop: "4px" }}>Kalori, protein, dll</div>
-                      </div>
-                      <div className="profil-card" style={{ padding: "1.5rem", minWidth: "160px" }}>
-                        <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>📋</div>
-                        <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>Log Riwayat</div>
-                        <div style={{ fontSize: "0.8rem", color: "var(--clr-gray-500)", marginTop: "4px" }}>Rekam & pantau</div>
-                      </div>
-                    </div>
-
-                    <div style={{ width: "100%", maxWidth: "800px", padding: "1rem", margin: "3rem auto 0", textAlign: "left" }}>
-                      <div style={{ background: "rgba(232, 244, 248, 0.9)", borderLeft: "4px solid var(--clr-teal)", padding: "1rem 1.5rem", borderRadius: "var(--radius-sm)", marginBottom: "1.5rem" }}>
-                        <h3 style={{ fontSize: "1rem", color: "var(--clr-navy)", marginBottom: "6px" }}>📚 Sumber Referensi Gizi Valid</h3>
+                 <div style={{ width: "100%", maxWidth: "800px", padding: "0", textAlign: "left", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                      
+                      {/* KOTAK SUMBER REFERENSI */}
+                      <div style={{ 
+                        background: "rgba(232, 244, 248, 0.9)", 
+                        borderLeft: "4px solid var(--clr-teal)", 
+                        padding: "1rem 1.5rem", 
+                        borderRadius: "8px", 
+                        width: "100%", /* <--- Bikin lebarnya sejajar dengan tabel */
+                        marginBottom: "1.5rem", /* <--- UBAH ANGKA INI untuk mengatur jarak dari kotak ke tabel (misal: "2rem" atau "10px") */
+                        marginTop: "0" /* <--- UBAH ANGKA INI kalau mau menambah jarak dari teks atasnya ke kotak ini */
+                      }}>
+                        <h3 style={{ fontSize: "1rem", color: "var(--clr-navy)", marginBottom: "6px" }}>
+                          Sumber Referensi Gizi Valid
+                        </h3>
                         <p style={{ fontSize: "0.85rem", color: "var(--clr-navy-dark)", lineHeight: "1.5", margin: 0 }}>
                           Seluruh kalkulasi gizi pada MBG Smart System menggunakan standar perhitungan mutlak berdasarkan <strong>Tabel Komposisi Pangan Indonesia (TKPI)</strong> yang diterbitkan resmi oleh <strong>Kementerian Kesehatan Republik Indonesia</strong>.
                         </p>
                       </div>
-
-                      <h3 style={{ fontSize: "1.2rem", color: "var(--clr-navy)", marginBottom: "1rem" }}>Daftar Kandungan Gizi (Menu Basis Data AI)</h3>
                       <div className="table-container">
                         <table className="log-table">
                           <thead>
@@ -745,7 +842,11 @@ export default function DashboardPage() {
                   gap: "10px",
                   boxShadow: "0 6px 15px rgba(21, 55, 89, 0.25)"
                 }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
+                  <img 
+                    src="/assets/icon-camera.png" 
+                    alt="Ikon Kamera" 
+                    style={{ width: "30px", height: "35px", objectFit: "contain" }} 
+                  />
                   Kamera Deteksi
                 </div>
 
@@ -758,7 +859,13 @@ export default function DashboardPage() {
                       <video ref={videoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }}></video>
                       {!cameraStream && (
                         <div className="viewport-overlay">
-                          <div className="overlay-icon">📷</div>
+                          <div className="overlay-icon">
+                          <img 
+                            src="/assets/icon-camera-shutter.png" 
+                            alt="Ikon Kamera Overlay" 
+                            style={{ width: "120px", height: "120px", objectFit: "contain", marginBottom: "15px" }} 
+                          />
+                        </div>
                           <div className="overlay-title">Menunggu Akses Kamera...</div>
                           <div className="overlay-subtitle">Harap izinkan akses kamera pada browser Anda</div>
                         </div>
@@ -904,9 +1011,15 @@ export default function DashboardPage() {
             {activePage === "log" && (
               <div className="dash-view active">
                 <div className="log-section">
-                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "10px" }}>
+                   <div style={{ 
+                    marginBottom: "1.5rem",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    textAlign: "center"
+                  }}>
                     
-                    {/* KOTAK JUDUL LOG RIWAYAT BARU */}
+                    {/* KOTAK JUDUL LOG RIWAYAT BARU (DENGAN IKON ASET) */}
                     <div style={{ 
                       backgroundColor: "#153759", 
                       color: "white", 
@@ -914,19 +1027,38 @@ export default function DashboardPage() {
                       borderRadius: "30px", 
                       fontWeight: "700", 
                       fontSize: "1.05rem", 
+                      marginBottom: "10px",
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: "10px",
+                      gap: "12px", /* Jarak sedikit dilebarin biar pas */
                       boxShadow: "0 6px 15px rgba(21, 55, 89, 0.25)"
                     }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+                      {/* GANTI tulisan NAMA_FILE_ICON_LOG.png DENGAN NAMA FILE ASET KAMU */}
+                      <img 
+                        src="/assets/icon-paper.png" 
+                        alt="Icon Log" 
+                        style={{ width: "30px", height: "30px", objectFit: "contain" }} 
+                      />
                       Laporan Deteksi Gizi
                     </div>
 
-                    {logEntries.length > 0 && (
-                      <div style={{ display: "flex", gap: "10px" }}>
-                        <button onClick={handleExportExcel} style={{ background: "#217346", color: "white", border: "none", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>📊 Excel</button>
-                        <button onClick={handleExportPDF} style={{ background: "#cb4335", color: "white", border: "none", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>📄 PDF</button>
+                    <p style={{ fontSize: "0.85rem", color: "#153759", margin: "0 0 10px 0" }}>
+                      Seluruh hasil pemindaian kualitas dan gizi makanan tersimpan secara otomatis di sini.
+                    </p>
+
+                    {/* DITAMBAHKAN isAdmin AGAR HANYA ADMIN YANG BISA LIHAT TOMBOL INI */}
+                    {isAdmin && logEntries.length > 0 && (
+                      <div style={{ display: "flex", gap: "10px", marginTop: "5px" }}>
+                        <button onClick={handleExportExcel} style={{ background: "#217346", color: "white", border: "none", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+                          {/* Ubah NAMA_ICON_EXCEL.png dengan file asetmu jika ada */}
+                          <img src="/assets/NAMA_ICON_EXCEL.png" alt="Excel" style={{ width: "16px", height: "16px", objectFit: "contain" }} />
+                          Excel
+                        </button>
+                        <button onClick={handleExportPDF} style={{ background: "#cb4335", color: "white", border: "none", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+                          {/* Ubah NAMA_ICON_PDF.png dengan file asetmu jika ada */}
+                          <img src="/assets/NAMA_ICON_PDF.png" alt="PDF" style={{ width: "16px", height: "16px", objectFit: "contain" }} />
+                          PDF
+                        </button>
                       </div>
                     )}
                   </div>
@@ -942,7 +1074,28 @@ export default function DashboardPage() {
                             <td><span className={`badge ${log.status === "SEGAR" ? "badge-fresh" : "badge-spoiled"}`}>{log.status}</span></td>
                             <td style={{ fontWeight: "600" }}>{log.jenis_makanan}</td>
                             <td>{log.petugas_nama}</td><td>{Math.round(log.confidence * 100)}%</td>
-                            <td style={{ textAlign: "center" }}><button onClick={() => handleSoftDelete(log.id)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "1.2rem" }}>🗑️</button></td>
+                           {/* GANTI EMOJI DENGAN GAMBAR ASET DARI FOLDER assets */}
+            <td style={{ textAlign: "center" }}>
+              <button 
+                onClick={() => handleSoftDelete(log.id)} 
+                style={{ 
+                  background: "transparent", 
+                  border: "none", 
+                  cursor: "pointer", 
+                  padding: "0",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+              >
+                {/* GANTI tulisan NAMA_FILE_ICON_HAPUS.png DENGAN NAMA FILE ASET KAMU */}
+                <img 
+                  src="/assets/icon-trashutama.png" 
+                  alt="Hapus" 
+                  style={{ width: "22px", height: "22px", objectFit: "contain" }} 
+                />
+              </button>
+            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -955,7 +1108,6 @@ export default function DashboardPage() {
             {activePage === "sampah" && (
               <div className="dash-view active">
                 <div className="log-section">
-                  {/* DIUBAH: Penambahan centering di container judul agar sejalan dengan Kamera Deteksi */}
                   <div style={{ 
                     marginBottom: "1.5rem",
                     display: "flex",
@@ -964,7 +1116,7 @@ export default function DashboardPage() {
                     textAlign: "center"
                   }}>
                     
-                    {/* KOTAK JUDUL TEMPAT SAMPAH BARU */}
+                  {/* KOTAK JUDUL DATA TERHAPUS DENGAN ICON ASET */}
                     <div style={{ 
                       backgroundColor: "#153759", 
                       color: "white", 
@@ -978,11 +1130,15 @@ export default function DashboardPage() {
                       gap: "10px",
                       boxShadow: "0 6px 15px rgba(21, 55, 89, 0.25)"
                     }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                      Tempat Sampah
+                      {/* GANTI SVG LAMA DENGAN INI 👇 */}
+                      <img 
+                        src="/assets/icon-trash.png" 
+                        alt="Ikon Data Terhapus" 
+                        style={{ width: "35px", height: "35px", objectFit: "contain" }} 
+                      />
+                      {/* 👆 ========================== */}
+                      Data Terhapus
                     </div>
-
-                    {/* DIUBAH: Warna teks diubah ke Navy (#153759) untuk konsistensi, dan dihapus margin-top agar mepet judul */}
                     <p style={{ fontSize: "0.85rem", color: "#153759", margin: "0" }}>Item akan dihapus permanen secara otomatis setelah 7 hari.</p>
                   </div>
 
@@ -998,8 +1154,7 @@ export default function DashboardPage() {
                             <td><span className={`badge ${log.status === "SEGAR" ? "badge-fresh" : "badge-spoiled"}`}>{log.status}</span> <strong>{log.jenis_makanan}</strong></td>
                             <td>{log.petugas_nama}</td><td>{7 - Math.floor((new Date().getTime() - new Date(log.deleted_at).getTime()) / (1000 * 3600 * 24))} Hari</td>
                             <td style={{ textAlign: "center" }}>
-                                <button onClick={() => handleRestore(log.id)} style={{ background: "#2ecc71", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold", marginRight: "5px" }}>♻️ Pulihkan</button>
-                                <button onClick={() => handleHardDelete(log.id)} style={{ background: "#e74c3c", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>Hapus</button>
+<button onClick={() => handleRestore(log.id)} style={{ background: "#2ecc71", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold", marginRight: "5px" }}>Pulihkan</button>                                <button onClick={() => handleHardDelete(log.id)} style={{ background: "#e74c3c", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>Hapus</button>
                             </td>
                           </tr>
                         ))}
@@ -1010,54 +1165,197 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {activePage === "profil" && (
-              <div className="dash-view active">
-                <div className="profil-section">
-                  <div className="profil-card">
-                    <div className="profil-avatar-big">{currentUser.nama_lengkap.charAt(0).toUpperCase()}</div>
-                    <div className="profil-row"><span className="row-label">Nama Lengkap</span><span className="row-value">{currentUser.nama_lengkap}</span></div>
-                    <div className="profil-row"><span className="row-label">Username</span><span className="row-value">{currentUser.username}</span></div>
-                    <div className="profil-row"><span className="row-label">Role</span><span className="row-value">{currentUser.role}</span></div>
-                    <div className="profil-row"><span className="row-label">Lokasi</span><span className="row-value">{currentUser.lokasi}</span></div>
-                    <div className="profil-row"><span className="row-label">No. HP</span><span className="row-value">{currentUser.no_hp}</span></div>
+            {/* ========================================================= */
+            /* DESAIN HALAMAN PROFIL BARU (KOTAK PUTIH + JUDUL NAVY)     */
+            /* ========================================================= */}
+           {activePage === "profil" && (
+              <div className="dash-view active" style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "1rem" }}>
+                
+                {/* === KOTAK JUDUL AKUN SAYA === */}
+                <div style={{ 
+                  backgroundColor: "#153759", color: "white", padding: "10px 24px", borderRadius: "30px", fontWeight: "700", fontSize: "1.05rem", marginBottom: "20px", display: "inline-flex", alignItems: "center", gap: "10px", boxShadow: "0 6px 15px rgba(21, 55, 89, 0.25)"
+                }}>
+                  <img src="/assets/icon-user.png" alt="Ikon Akun" style={{ width: "35px", height: "35px", objectFit: "contain" }} />
+                  Akun Saya
+                </div>
+
+                {/* === KOTAK DATA PROFIL (DIPAKSA PUTIH AGAR TEKS TERBACA) === */}
+                <div className="profil-section" style={{ width: "100%", maxWidth: "600px" }}>
+                  <div className="profil-card" style={{ backgroundColor: "#ffffff", padding: "2rem", borderRadius: "16px", boxShadow: "0 4px 15px rgba(0,0,0,0.05)" }}>
+                    
+                    {/* Avatar Profil */}
+                    <div className="profil-avatar-big" style={{ width: "80px", height: "80px", borderRadius: "50%", backgroundColor: "#153759", color: "white", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "2rem", fontWeight: "bold", overflow: "hidden", margin: "0 auto 2rem", boxShadow: "0 4px 10px rgba(21, 55, 89, 0.2)" }}>
+                      {currentUser.jenis_kelamin === "Laki-laki" ? (
+                        <img src="/assets/icon-cowo.png" alt="Cowo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : currentUser.jenis_kelamin === "Perempuan" ? (
+                        <img src="/assets/icon-cewe.png" alt="Cewe" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        currentUser.nama_lengkap.charAt(0).toUpperCase()
+                      )}
+                    </div>
+
+                    {/* Data List */}
+                    {[
+                      { label: "Nama Lengkap", value: currentUser.nama_lengkap },
+                      { label: "Username", value: currentUser.username },
+                      { label: "Jenis Kelamin", value: currentUser.jenis_kelamin || "Belum diatur" },
+                      { label: "Role", value: currentUser.role },
+                      { label: "Lokasi", value: currentUser.lokasi },
+                      { label: "No. HP", value: currentUser.no_hp },
+                    ].map((row, index) => (
+                      <div key={index} className="profil-row" style={{ display: "flex", justifyContent: "space-between", padding: "1rem 0", borderBottom: "1px solid #f1f5f9" }}>
+                        <span className="row-label" style={{ color: "#64748b", fontWeight: "600", fontSize: "0.9rem" }}>{row.label}</span>
+                        <span className="row-value" style={{ color: "#0f172a", fontWeight: "700", fontSize: "0.9rem" }}>{row.value}</span>
+                      </div>
+                    ))}
+
                     <div className="profil-row" style={{ justifyContent: "center", marginTop: "1.5rem", borderBottom: "none" }}>
-                      <button className="btn-primary" style={{ padding: "10px 24px" }} onClick={openEditModal}>Edit Profil</button>
+                      <button className="btn-primary" style={{ backgroundColor: "#153759", color: "white", padding: "12px 24px", borderRadius: "8px", fontWeight: "bold", width: "100%", border: "none", cursor: "pointer", fontSize: "1rem" }} onClick={openEditModal}>
+                        Edit Akun
+                      </button>
                     </div>
                   </div>
                 </div>
+                
               </div>
             )}
           </div>
         </main>
 
+        {/* === MODAL EDIT PROFIL BARU (NAVY THEME) === */}
         {isEditModalOpen && (
           <div className="modal-overlay">
-            <div className="modal-card">
-              <h3 className="modal-title">Edit Profil</h3>
-              <form onSubmit={handleSaveProfil}>
-                <div className="form-field"><label className="form-label">Nama Lengkap</label><input type="text" value={editForm.nama_lengkap} onChange={(e) => setEditForm({ ...editForm, nama_lengkap: e.target.value })} required style={{ width: "100%", padding: "10px", border: "1px solid #ccc", borderRadius: "6px" }} /></div>
-                <div className="form-field"><label className="form-label">Lokasi Dapur MBG</label><input type="text" value={editForm.lokasi} onChange={(e) => setEditForm({ ...editForm, lokasi: e.target.value })} required style={{ width: "100%", padding: "10px", border: "1px solid #ccc", borderRadius: "6px" }} /></div>
-                <div className="form-field"><label className="form-label">Nomor Telp / HP</label><input type="text" value={editForm.no_hp} onChange={(e) => setEditForm({ ...editForm, no_hp: e.target.value })} required style={{ width: "100%", padding: "10px", border: "1px solid #ccc", borderRadius: "6px" }} /></div>
-                <div className="modal-actions">
-                  <button type="button" className="btn-secondary" onClick={() => setIsEditModalOpen(false)}>Batal</button>
-                  <button type="submit" className="btn-primary" disabled={isSavingProfile}>{isSavingProfile ? "Menyimpan..." : "Simpan"}</button>
+            <div style={{
+                backgroundColor: "#153759", color: "#ffffff", borderRadius: "16px", padding: "2rem",
+                width: "90%", maxWidth: "500px", boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+                border: "1px solid rgba(255,255,255, 0.1)", display: "flex", flexDirection: "column", alignItems: "center"
+            }}>
+              
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "10px", fontWeight: "700", fontSize: "1.2rem", marginBottom: "2rem", color: "#ffffff" }}>
+                <img 
+                  src="/assets/icon-user.png" // <--- GANTI INI DENGAN NAMA FILE ASET KAMU
+                  alt="Ikon Edit Profil" 
+                  style={{ width: "35px", height: "35px", objectFit: "contain" }} 
+                />
+                <span>Edit Profil Saya</span>
+              </div>
+
+              <form onSubmit={handleSaveProfil} style={{ width: "100%" }}>
+                <div style={{ width: "100%", marginBottom: "1.2rem", textAlign: "left" }}>
+                  <label style={{ color: "rgba(255,255,255, 0.8)", fontWeight: "600", marginBottom: "6px", display: "block" }}>Nama Lengkap</label>
+                  <input type="text" value={editForm.nama_lengkap} onChange={(e) => setEditForm({ ...editForm, nama_lengkap: e.target.value })} required style={{ width: "100%", padding: "10px", borderRadius: "6px", background: "rgba(255,255,255, 0.05)", color: "#ffffff", border: "1px solid rgba(255,255,255, 0.2)", outline: "none" }} onFocus={(e) => e.target.style.borderColor = "#2ecc71"} onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255, 0.2)"} />
+                </div>
+                
+                {/* DITAMBAHKAN: Input Tombol Toggle untuk Jenis Kelamin */}
+                <div style={{ width: "100%", marginBottom: "1.2rem", textAlign: "left" }}>
+                  <label style={{ color: "rgba(255,255,255, 0.8)", fontWeight: "600", marginBottom: "6px", display: "block" }}>Jenis Kelamin</label>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    
+                    {/* Tombol Laki-laki */}
+                    <button 
+                      type="button" 
+                      onClick={() => setEditForm({ ...editForm, jenis_kelamin: "Laki-laki" })} 
+                      style={{ 
+                        flex: 1, padding: "10px", borderRadius: "6px", 
+                        background: editForm.jenis_kelamin === "Laki-laki" ? "#2ecc71" : "rgba(255,255,255, 0.05)", 
+                        color: "#ffffff", 
+                        border: editForm.jenis_kelamin === "Laki-laki" ? "none" : "1px solid rgba(255,255,255, 0.2)", 
+                        outline: "none", cursor: "pointer", fontWeight: "bold", transition: "0.2s",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" /* Tambahan biar icon & teks rapi sejajar */
+                      }}
+                    >
+                      <img src="/assets/icon-cowo.png" alt="Icon Cowo" style={{ width: "23px", height: "23px", objectFit: "contain" }} />
+                      Laki-laki
+                    </button>
+
+                    {/* Tombol Perempuan */}
+                    <button 
+                      type="button" 
+                      onClick={() => setEditForm({ ...editForm, jenis_kelamin: "Perempuan" })} 
+                      style={{ 
+                        flex: 1, padding: "10px", borderRadius: "6px", 
+                        background: editForm.jenis_kelamin === "Perempuan" ? "#2ecc71" : "rgba(255,255,255, 0.05)", 
+                        color: "#ffffff", 
+                        border: editForm.jenis_kelamin === "Perempuan" ? "none" : "1px solid rgba(255,255,255, 0.2)", 
+                        outline: "none", cursor: "pointer", fontWeight: "bold", transition: "0.2s",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: "8px"
+                      }}
+                    >
+                      <img src="/assets/icon-cewe.png" alt="Icon Cewe" style={{ width: "25px", height: "25px", objectFit: "contain" }} />
+                      Perempuan
+                    </button>
+
+                  </div>
+                </div>
+
+                <div style={{ width: "100%", marginBottom: "1.2rem", textAlign: "left" }}>
+                  <label style={{ color: "rgba(255,255,255, 0.8)", fontWeight: "600", marginBottom: "6px", display: "block" }}>Lokasi Dapur MBG</label>
+                  <input type="text" value={editForm.lokasi} onChange={(e) => setEditForm({ ...editForm, lokasi: e.target.value })} required style={{ width: "100%", padding: "10px", borderRadius: "6px", background: "rgba(255,255,255, 0.05)", color: "#ffffff", border: "1px solid rgba(255,255,255, 0.2)", outline: "none" }} onFocus={(e) => e.target.style.borderColor = "#2ecc71"} onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255, 0.2)"} />
+                </div>
+                <div style={{ width: "100%", marginBottom: "1.2rem", textAlign: "left" }}>
+                  <label style={{ color: "rgba(255,255,255, 0.8)", fontWeight: "600", marginBottom: "6px", display: "block" }}>Nomor Telp / HP</label>
+                  <input type="text" value={editForm.no_hp} onChange={(e) => setEditForm({ ...editForm, no_hp: e.target.value })} required style={{ width: "100%", padding: "10px", borderRadius: "6px", background: "rgba(255,255,255, 0.05)", color: "#ffffff", border: "1px solid rgba(255,255,255, 0.2)", outline: "none" }} onFocus={(e) => e.target.style.borderColor = "#2ecc71"} onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255, 0.2)"} />
+                </div>
+                
+                <div style={{ display: "flex", justifyContent: "center", marginTop: "2rem", gap: "15px" }}>
+                  <button type="button" onClick={() => setIsEditModalOpen(false)} style={{ background: "transparent", color: "white", border: "1px solid rgba(255,255,255,0.4)", padding: "10px 24px", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>Batal</button>
+                  <button type="submit" disabled={isSavingProfile} style={{ background: "#2ecc71", color: "white", border: "none", padding: "10px 24px", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>{isSavingProfile ? "Menyimpan..." : "Simpan Perubahan"}</button>
                 </div>
               </form>
             </div>
           </div>
         )}
         
+        {/* === MODAL LOGOUT BARU (NAVY THEME) === */}
+       {/* === MODAL LOGOUT (FIX WARNA TEKS) === */}
         {isLogoutModalOpen && (
           <div className="modal-overlay">
-            <div className="modal-card" style={{ textAlign: "center" }}>
+            <div className="modal-card" style={{ textAlign: "center", backgroundColor: "#153759", padding: "2rem", borderRadius: "16px", maxWidth: "400px", border: "1px solid rgba(255,255,255,0.1)" }}>
               <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
                 <img src="/assets/bye.png" alt="Logout Icon" style={{ width: "80px", height: "80px", objectFit: "contain" }} />
               </div>
-              <h3 className="modal-title">Yakin Ingin Keluar?</h3>
-              <p style={{ color: "var(--clr-gray-500)", marginBottom: "1.5rem", fontSize: "0.95rem", lineHeight: "1.5" }}>Sesi Anda akan diakhiri dan Anda harus login kembali.</p>
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setIsLogoutModalOpen(false)}>Batal</button>
-                <button type="button" className="btn-primary" style={{ background: "#cb4335" }} onClick={confirmLogout}>Ya, Keluar</button>
+              
+              {/* Teks dikunci jadi warna Putih */}
+              <h3 className="modal-title" style={{ color: "#ffffff", fontSize: "1.4rem", marginBottom: "10px", fontWeight: "bold" }}>
+                Yakin Ingin Keluar?
+              </h3>
+              <p style={{ color: "rgba(255,255,255,0.8)", marginBottom: "2rem", fontSize: "0.95rem", lineHeight: "1.5" }}>
+                Sesi Anda akan diakhiri dan Anda harus login kembali.
+              </p>
+              
+              <div className="modal-actions" style={{ display: "flex", justifyContent: "center", gap: "15px", width: "100%" }}>
+                <button 
+                  type="button" 
+                  onClick={() => setIsLogoutModalOpen(false)}
+                  style={{
+                    background: "transparent",
+                    color: "#ffffff", /* Teks Batal warna Putih */
+                    border: "1px solid rgba(255,255,255,0.5)", /* Garis pinggir warna Putih */
+                    padding: "10px 24px",
+                    borderRadius: "8px",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  Batal
+                </button>
+                <button 
+                  type="button" 
+                  onClick={confirmLogout}
+                  style={{
+                    background: "#cb4335",
+                    color: "white",
+                    border: "none",
+                    padding: "10px 24px",
+                    borderRadius: "8px",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 10px rgba(203, 67, 53, 0.3)"
+                  }}
+                >
+                  Ya, Keluar
+                </button>
               </div>
             </div>
           </div>

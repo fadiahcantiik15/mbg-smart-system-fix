@@ -1,10 +1,6 @@
 /* Letakkan ini di baris PALING ATAS globals.css */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 
-/* ================================================================
-   MBG Smart System — Stylesheet v3.0
-   ... (sisa kodemu di bawahnya) ...
-*/
 :root {
   /* Primary Palette */
   --clr-navy: #335765;
@@ -72,8 +68,9 @@ body {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
+  z-index: 1;
   overflow: hidden;
+  opacity: 0.5;
 }
 
 /* ======================================================= */
@@ -1306,65 +1303,58 @@ body {
   animation: fadeIn 0.3s ease;
 }
 
+/* ========================================================= */
+/* DESAIN MODAL EDIT PROFIL BARU (THEME NAVY & ICON ASET)   */
+/* ========================================================= */
 .modal-card {
-  background: var(--clr-white);
-  padding: 2.2rem;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-elevated);
+  background-color: #153759 !important; /* Navy base */
+  color: #ffffff !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 2rem !important;
   width: 100%;
-  max-width: 400px;
-  animation: cardAppear 0.4s ease;
-}
+  max-width: 500px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+  border: 1px solid rgba(255,255,255, 0.1) !important;
+                /* Center content */
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
 
-.modal-title {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--clr-navy);
-  margin-bottom: 1.2rem;
-  text-align: center;
-}
+            /* Container Judul Modal (meniru gaya kotak judul Kamera) */
+            .modal-title-container {
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                font-weight: 700;
+                font-size: 1.2rem;
+                margin-bottom: 2rem;
+                color: #ffffff;
+            }
 
-.modal-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 1.5rem;
-}
-
-.btn-secondary {
-  flex: 1;
-  background-color: transparent;
-  color: var(--clr-navy);
-  border: 1.5px solid var(--clr-navy);
-  padding: 12px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 0.95rem;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.btn-secondary:hover {
-  background: var(--clr-gray-100);
-}
-
-.form-field {
-  margin-bottom: 16px;
-  text-align: left;
-}
-
-.form-field .input-group {
-  margin-bottom: 0;
-}
-
-.form-label {
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--clr-navy);
-  margin-bottom: 6px;
-  margin-left: 4px;
-}
+            /* Menyesuaikan elemen Form agar cocok dengan background gelap */
+            .modal-card .form-field {
+                width: 100%;
+                margin-bottom: 1.2rem;
+                text-align: left;
+            }
+            .modal-card .form-label {
+                color: rgba(255,255,255, 0.8) !important;
+                font-weight: 600;
+                margin-bottom: 6px;
+                display: block;
+            }
+            
+            /* Penanganan khusus untuk input text di modal gelap */
+            .modal-card input[type="text"] {
+                background: rgba(255,255,255, 0.05) !important;
+                color: #ffffff !important;
+                border: 1px solid rgba(255,255,255, 0.2) !important;
+            }
+            .modal-card input[type="text"]:focus {
+                border-color: var(--clr-teal) !important;
+                background: rgba(255,255,255, 0.1) !important;
+            }
 
 /* ==========================================================================
    CUSTOM POPUP MODAL (Posisinya fixed di tengah layar)

@@ -41,6 +41,9 @@ export default function LoginPage() {
   const [noHp, setNoHp] = useState("");
   const [lokasi, setLokasi] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
+  
+  // DITAMBAHKAN: State untuk Jenis Kelamin
+  const [jenisKelamin, setJenisKelamin] = useState("");
 
   const [resetStep, setResetStep] = useState(1);
   const [resetPhone, setResetPhone] = useState("");
@@ -59,6 +62,7 @@ export default function LoginPage() {
     setNamaLengkap("");
     setNoHp("");
     setLokasi("");
+    setJenisKelamin(""); // DITAMBAHKAN: Reset Jenis Kelamin
     setResetPhone("");
     setNewPassword("");
     setOtpInput(["", "", "", "", "", ""]);
@@ -228,9 +232,15 @@ export default function LoginPage() {
     e.preventDefault();
     setErrorMsg("");
 
-   // Validasi Nomor HP
+    // Validasi Nomor HP
     if (noHp.startsWith("0") || !noHp.startsWith("62")) {
       setErrorMsg("Nomor telepon harus diawali dengan angka 62, bukan 0!");
+      return;
+    }
+
+    // DITAMBAHKAN: Validasi Jenis Kelamin harus dipilih
+    if (!jenisKelamin) {
+      setErrorMsg("Harap pilih jenis kelamin Anda!");
       return;
     }
 
@@ -270,6 +280,7 @@ export default function LoginPage() {
         nama_lengkap: namaLengkap, 
         no_hp: noHp, 
         lokasi: lokasi, 
+        jenis_kelamin: jenisKelamin, // DITAMBAHKAN: Insert jenis kelamin
         role: "Petugas Lapangan",
         status: "pending" 
       }]);
@@ -324,7 +335,7 @@ export default function LoginPage() {
               <form onSubmit={handleLogin}>
                 <div className="input-group">
                   <span className="input-icon">
-                    <img src="/assets/icon-user.png" alt="User Icon" style={{ width: "26px", height: "26px", objectFit: "contain" }} />
+                    <img src="/assets/icon-user-login.png" alt="User Icon Login" style={{ width: "26px", height: "26px", objectFit: "contain" }} />
                   </span>
                   <input type="text" placeholder="Username (Misal: Fadiah)" required value={username} onChange={(e) => setUsername(e.target.value)} />
                 </div>
@@ -379,12 +390,47 @@ export default function LoginPage() {
               <h2 className="auth-title">Daftar Petugas Baru</h2>
               {errorMsg && <div className="auth-error">{errorMsg}</div>}
               <form onSubmit={handleRegister}>
+                
+                {/* PILIHAN JENIS KELAMIN (DIPINDAH KE PALING ATAS, TANPA LABEL) */}
+                <div style={{ width: "100%", marginBottom: "14px" }}>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button 
+                      type="button" 
+                      onClick={() => setJenisKelamin("Laki-laki")} 
+                      style={{ 
+                        flex: 1, padding: "12px", borderRadius: "8px", 
+                        background: jenisKelamin === "Laki-laki" ? "#2ecc71" : "transparent", 
+                        color: jenisKelamin === "Laki-laki" ? "#ffffff" : "var(--clr-gray-500)", 
+                        border: jenisKelamin === "Laki-laki" ? "none" : "1px solid #7da2a9", 
+                        outline: "none", cursor: "pointer", fontWeight: "bold", transition: "0.2s",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: "8px"
+                      }}
+                    >
+                      <img src="/assets/icon-cowo.png" alt="Icon Cowo" style={{ width: "24px", height: "24px", objectFit: "contain" }} />
+                      Laki-laki
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setJenisKelamin("Perempuan")} 
+                      style={{ 
+                        flex: 1, padding: "12px", borderRadius: "8px", 
+                        background: jenisKelamin === "Perempuan" ? "#2ecc71" : "transparent", 
+                        color: jenisKelamin === "Perempuan" ? "#ffffff" : "var(--clr-gray-500)", 
+                        border: jenisKelamin === "Perempuan" ? "none" : "1px solid #7da2a9", 
+                        outline: "none", cursor: "pointer", fontWeight: "bold", transition: "0.2s",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: "8px"
+                      }}
+                    >
+                      <img src="/assets/icon-cewe.png" alt="Icon Cewe" style={{ width: "24px", height: "24px", objectFit: "contain" }} />
+                      Perempuan
+                    </button>
+                  </div>
+                </div>
+                {/* ------------------------------------------- */}
+
                 <div className="input-group"><input type="text" placeholder="Nama Lengkap" required value={namaLengkap} onChange={(e) => setNamaLengkap(e.target.value)} /></div>
                 <div className="input-group"><input type="text" placeholder="Username" required value={username} onChange={(e) => setUsername(e.target.value)} /></div>
                 
-                <div className="input-group" style={{ marginBottom: noHp.startsWith("0") ? "4px" : "14px" }}>
-                  <input type="tel" placeholder="Nomor Telepon (Awali 628...)" required value={noHp} onChange={(e) => setNoHp(e.target.value.replace(/\D/g, ""))} />
-                </div>
                 {noHp.startsWith("0") && (
                   <p style={{ fontSize: "0.75rem", color: "var(--clr-spoiled)", marginTop: "-6px", marginBottom: "12px", marginLeft: "4px", fontWeight: "bold" }}>
                     ⚠️ Harap gunakan 62 di awal, bukan 0.
