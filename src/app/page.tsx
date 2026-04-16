@@ -10,9 +10,9 @@ export default function LoginPage() {
   const router = useRouter();
 
   const FONNTE_TOKEN = "4RfHCsUiw93xYJCoYVrz"; 
-  const EMAILJS_SERVICE_ID = "service_4g8z0w9";
-  const EMAILJS_TEMPLATE_ID = "template_saj3aar";
-  const EMAILJS_PUBLIC_KEY = "iH9Qe-hTBurk2KwH3";
+  const EMAILJS_SERVICE_ID = "service_yml4pje";
+  const EMAILJS_TEMPLATE_ID = "template_bwpq55k";
+  const EMAILJS_PUBLIC_KEY = "taYt9HZyJVptfAQP9";
 
   const [view, setView] = useState<"login" | "register" | "reset">("login");
   const [isLoading, setIsLoading] = useState(false);
@@ -167,12 +167,18 @@ export default function LoginPage() {
         const resData = await response.json();
         if(!resData.status) throw new Error("Gagal mengirim WA. Pastikan token Fonnte aktif.");
       } else {
+        // --- BAGIAN INI YANG DIPERBAIKI ---
+        const waktuExpired = new Date();
+        waktuExpired.setMinutes(waktuExpired.getMinutes() + 5);
+        const jamExpired = waktuExpired.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + " WIB";
+
         await emailjs.send(
           EMAILJS_SERVICE_ID,
           EMAILJS_TEMPLATE_ID,
           {
-            nama_lengkap: user.nama_lengkap,
-            otp_code: generatedOTP,
+            to_name: user.nama_lengkap,
+            passcode: generatedOTP,
+            time: jamExpired,
             email: user.email,
           },
           EMAILJS_PUBLIC_KEY
